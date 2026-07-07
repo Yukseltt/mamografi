@@ -1,0 +1,24 @@
+# Sanal ortamlar
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# Veri seti (8.4 GB - GitHub'a yuklenmez, ayrica indirilir)
+INbreast_dataset/
+
+# Uretilen ciktilar (scriptler yeniden uretir)
+egitim/cikti/
+
+# Claude Code yerel ayarlar
+.claude/settings.local.json
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
