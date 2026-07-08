@@ -20,27 +20,27 @@ for dosya in dosyalar:
         "yon": parcalar[4],            # CC / ML / MLO
     })
 
-# Listeyi pandas DataFrame'e cevir (Excel benzeri tablo)
+# Listeyi pandas DataFrame'e cevir
 df = pd.DataFrame(kayitlar)
 print("Tablonun ilk 5 satiri:")
 print(df.head(), "\n")
 
 # value_counts -> bir sutundaki her degerin kac kez gectigini sayar
-print("=== TARAF DAGILIMI (sag/sol) ===")
+print("TARAF DAGILIMI (sag/sol)")
 print(df["taraf"].value_counts(), "\n")
 
-print("=== CEKIM YONU DAGILIMI ===")
+print("CEKIM YONU DAGILIMI (CC/ML/MLO)")
 print(df["yon"].value_counts(), "\n")
 
-print("=== BENZERSIZ HASTA SAYISI ===")
+print("BENZERSIZ HASTA SAYISI")
 print(f"{df['hasta_id'].nunique()} hasta, {len(df)} goruntu")
 print(f"Hasta basina ortalama {len(df) / df['hasta_id'].nunique():.1f} goruntu\n")
 
 # Taraf + yon kombinasyonu (capraz tablo)
-print("=== TARAF x YON (capraz tablo) ===")
+print("TARAF x YON")
 print(pd.crosstab(df["taraf"], df["yon"]))
 
-# Tabloyu CSV olarak kaydet (sonraki adimlarda kullanmak icin)
+# Tabloyu CSV olarak kaydet
 cikti = Path("D:\\mamografi\\egitim\\cikti")
 cikti.mkdir(exist_ok=True)
 df.to_csv(cikti / "03_goruntu_tablosu.csv", index=False)
