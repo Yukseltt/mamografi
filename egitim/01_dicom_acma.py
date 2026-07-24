@@ -11,20 +11,20 @@ DICOM_KLASORU = Path("D:\\mamografi\\INbreast_dataset\\AllDICOMs")
 ilk_dosya = sorted(DICOM_KLASORU.glob("*.dcm"))[0]
 print(f"Aciliyor: {ilk_dosya.name}\n")
 
-# Metadata + piksel verisini yukle
+# Metadata ve piksel verisini yukle
 ds = pydicom.dcmread(ilk_dosya)
 
-# Piksel verisi: 2 boyutlu NumPy dizisi (her sayi = gri tonu)
+# Piksel verisi: 2 boyutlu NumPy dizisi
 goruntu = ds.pixel_array
 
-print("--- GORUNTU BILGILERI ---")
-print(f"Veri tipi (dtype)   : {goruntu.dtype}")
-print(f"Boyut (shape)       : {goruntu.shape}")   # (yukseklik, genislik)
-print(f"Toplam piksel       : {goruntu.size:,}")
+print("GORUNTU BILGILERI")
+print(f"Veri tipi (dtype) : {goruntu.dtype}")
+print(f"Boyut (yukseklik, genislik) : {goruntu.shape}")
+print(f"Toplam piksel : {goruntu.size:,}")
 print(f"En koyu / en parlak : {goruntu.min()} / {goruntu.max()}")
-print(f"Ortalama parlaklik  : {goruntu.mean():.1f}")
+print(f"Ortalama parlaklik : {goruntu.mean():.1f}")
 
-# PNG olarak kaydet (cmap='gray' -> tibbi goruntuler gri tonlamalidir)
+# PNG olarak kaydet
 cikti = Path("D:\\mamografi\\egitim\\cikti")
 cikti.mkdir(exist_ok=True)
 
@@ -35,4 +35,4 @@ plt.axis("off")
 plt.tight_layout()
 kayit_yolu = cikti / "01_ilk_goruntu.png"
 plt.savefig(kayit_yolu, dpi=100, bbox_inches="tight")
-print(f"\nGoruntu kaydedildi -> {kayit_yolu}")
+print(f"\nGoruntu kaydedildi - {kayit_yolu}")
