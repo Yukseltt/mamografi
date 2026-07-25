@@ -13,6 +13,7 @@ INbreast_dataset/
 
 # Uretilen ciktilar (scriptler yeniden uretir)
 egitim/cikti/
+egitim/islenmis/
 
 # Claude Code yerel ayarlar
 .claude/settings.local.json
