@@ -95,17 +95,42 @@ Literatür kaynakları: [U-Net/U-Net++ training params analysis](https://portal.
 - Early stopping: patience 12-15, val Dice izlenerek
 - AMP (mixed precision): açık (`torch.amp.autocast('cuda')` / `torch.amp.GradScaler('cuda')` — eski `torch.cuda.amp.*` API'si deprecated olduğu için güncellendi)
 - **Gradient clipping**: `scaler.unscale_(optimizer)` sonrası `clip_grad_norm_(model.parameters(), max_norm=1.0)` — AMP altında ani gradyan sıçramalarını sınırlamak için eklendi (yine ilk denemedeki dengesizliğe karşı)
-- **BatchNorm momentum düşürüldü** (varsayılan 0.1 → 0.01, model oluşturulduktan hemen sonra tüm `BatchNorm2d` katmanlarına uygulanıyor): küçük batch (8-16) ve görüntüden görüntüye değişen doku oranı yüzünden running mean/var gürültülü kalıyordu, bu da eval-mode (validasyon) çıktısının epoch'tan epoch'a çok farklı bir dağılıma kaymasına (bazen tamamen "arkaplan" tahmini) yol açıyordu — momentum düşürülerek running istatistikler daha kararlı hale getirildi.
+- **Girdi normalizasyonu**: görüntü Dataset içinde per-görüntü min-max ile `[0,1]`'e çekiliyor, ardından ImageNet mean/std uygulanıyor. `A.Normalize` **`max_pixel_value=1.0` ile çağrılmalı** — varsayılan `255.0` ile görüntü ikinci kez 255'e bölünür ve dinamik aralık 1/255'e iner (bkz. Şu Anki Durum, çözülen ana bug).
+- **BatchNorm momentum varsayılan (0.1)**: bir ara 0.01'e çekilmişti (küçük batch'te running istatistikler gürültülü diye), ancak asıl dengesizliğin kaynağı normalizasyon bug'ıydı. Epoch başına yalnızca 27 adım varken 0.01 running istatistiklerin oturmasını ~4 epoch geciktirdiği için varsayılana geri alındı.
 - Augmentation: horizontal/vertical flip, ±10-15° rotation, brightness/contrast jitter, hafif elastic deformation, hafif CoarseDropout — agresif crop/zoom yok (global doku oranı korunmalı). MICCAI 2024'te küçük organ segmentasyonunda CutMix'in daha iyi sonuç verdiği bulgusu değerlendirildi ancak kullanıcı tercihiyle mevcut set korundu, CutMix eklenmedi.
 - Gerekirse gradient accumulation ile efektif batch sabitlenecek
-- **Dice metriği manuel hesaplanıyor** (TP/FP/FN üzerinden), `torchmetrics.functional.dice` bazı sürümlerde mevcut olmadığı için (`AttributeError`) sürümden bağımsız hale getirildi; IoU/Precision/Recall/F1 hâlâ `torchmetrics.functional` (`task='binary'`) ile hesaplanıyor.
+- **Tüm metrikler manuel hesaplanıyor** (TP/FP/FN üzerinden, görüntü başına hesaplanıp batch içinde ortalanarak). Başlangıçta sadece Dice manuel, IoU/Precision/Recall/F1 `torchmetrics.functional` ile hesaplanıyordu; torchmetrics batch-geneli (micro) hesapladığı için binary'de eşit olması gereken Dice ve F1 farklı çıkıyordu, modeller arası karşılaştırma tablosunu bozacaktı. Şimdi hepsi aynı per-görüntü tanımını kullanıyor (`f1 = dice`).
 
 ## Şu Anki Durum (güncel ilerleme)
 
-- **Model 1/6 (`unet_resnet34`) Colab'da aktif olarak eğitiliyor/hata ayıklanıyor.** Diğer 5 model henüz başlatılmadı.
-- Sırasıyla şu sorunlar tespit edilip düzeltildi: (1) case eşleştirme doğrulandı (447 train/89 val, dosya adları uyumlu), (2) `torchmetrics.dice` `AttributeError`'ı → manuel Dice hesaplamasına geçildi, (3) `torch.cuda.amp.*` deprecation uyarısı → `torch.amp.*` API'sine geçildi, (4) ilk eğitim denemelerinde val loss/dice epoch'tan epoch'a çok sert sıçrıyordu (train_loss düzgün azalırken) → 3 epoch warmup + gradient clipping + BatchNorm momentum düşürme eklendi.
-- **Henüz doğrulanmadı**: bu üç düzeltmenin (warmup+clipping+BN momentum) volatiliteyi gerçekten çözüp çözmediği — bir sonraki adım bunu en az 10-15 epoch boyunca gözlemlemek.
-- SegFormer-B2 dahil diğer 5 mimari için notebook kodu hazır ama hiç çalıştırılmadı; `unet_resnet34` stabilize olduktan sonra sırayla denenecek.
+- **Model 1/6 (`unet_resnet34`) hâlâ ilk başarılı eğitim koşusunu bekliyor.** Diğer 5 model henüz başlatılmadı.
+- Sırasıyla şu sorunlar tespit edilip düzeltildi: (1) case eşleştirme doğrulandı (447 train/89 val, dosya adları uyumlu), (2) `torchmetrics.dice` `AttributeError`'ı → manuel Dice hesaplamasına geçildi, (3) `torch.cuda.amp.*` deprecation uyarısı → `torch.amp.*` API'sine geçildi, (4) val loss/dice epoch'tan epoch'a çok sert sıçrıyordu (train_loss düzgün azalırken) → 3 epoch warmup + gradient clipping + BatchNorm momentum düşürme eklendi.
+
+### Volatilitenin kök nedeni bulundu (çözüldü)
+
+14 epoch'luk gözlem, (4)'teki üç düzeltmenin volatiliteyi **çözmediğini** gösterdi — train loss 1.62→0.47 düzgün inerken val Dice 0.0002 ile 0.56 arasında rastgele zıplamaya devam etti. Semptomun kaynağı optimizasyon değil, **girdi normalizasyonuydu**:
+
+Görüntü Dataset içinde zaten min-max ile `[0,1]`'e çekiliyordu, ardından `A.Normalize` varsayılan `max_pixel_value=255.0` ile çağrıldığı için ikinci kez 255'e bölünüyordu. Sonuç: `(img/255 - 0.485)/0.229` → tüm görüntü `[-2.118, -2.101]` aralığına sıkışıyor, dinamik aralık 0.017 (olması gereken ~4.37, tam **255x** fark — yerelde doğrulandı). Encoder'a giden şey neredeyse sabit bir düzlem oluyordu.
+
+Bu tam olarak gözlenen semptomu üretir: BatchNorm train-mode'da batch istatistikleriyle minik sinyali geri büyütüp öğrenmeyi mümkün kılıyor (train loss düşüyor), ama eval-mode'da running mean/var ile batch istatistikleri arasındaki en ufak fark aynı oranda büyütüldüğü için val çıktısı her epoch farklı bir dağılıma kayıyordu. Warmup/clipping/BN-momentum semptomu tedavi etmeye çalıştığı için etkisiz kaldı.
+
+### Uygulanan düzeltmeler (notebook güncellendi, Colab'da henüz çalıştırılmadı)
+
+1. **`A.Normalize(..., max_pixel_value=1.0)`** — ana düzeltme. Tek bir `imagenet_normalize()` fabrika fonksiyonuna toplandı, üç yerde de (train/val transform + görselleştirmedeki `predict_mask`) aynı fonksiyon kullanılıyor.
+2. **BatchNorm momentum varsayılana (0.1) döndürüldü** — 0.01 override'ı kaldırıldı.
+3. **`A.ElasticTransform` alpha 1 → 30** — alpha deformasyon genliğini ölçeklediği için alpha=1 pratikte no-op'tu, elastic augmentation hiç çalışmıyordu.
+4. **Tüm metrikler per-görüntü tanımına geçirildi** — Dice/IoU/Precision/Recall/F1 aynı TP/FP/FN'den, `torchmetrics` bağımlılığı metrik hesabından çıktı (bkz. Hiperparametreler).
+5. **Yerel `.npy` cache** (`/content/npy_cache`) — her epoch 447 `.nii.gz` dosyasını Drive'dan okumak eğitimin en yavaş kısmıydı; ilk okumada yerel diske yazılıp sonraki epoch'larda oradan okunuyor (worker'lar arası yarım dosya olmasın diye atomik `os.replace`).
+6. **`epochs_without_improve` checkpoint'e eklendi** — resume'da early stopping sayacı sıfırlanıyordu.
+7. Küçük: train loss `drop_last=True` yüzünden görülmeyen 15 örneği de bölene katıyordu (~%3 düşük raporlanıyordu); `find_resumable_checkpoint` checkpoint'i iki kez yüklüyordu (artık yüklenen dict doğrudan `restore_checkpoint`'e veriliyor).
+
+Dataset hücresinin sonuna bir **doğrulama print'i** eklendi: girdi tensörünün aralığını ve maske değerlerini basıyor. Aralık `~[-2.1, 2.6]` görünmeli; hepsi -2.1 civarında sıkışıksa `max_pixel_value` hâlâ yanlış demektir.
+
+### Sıradaki adım
+
+`unet_resnet34`'ü **sıfırdan** (`RESUME=False`) yeniden eğitmek — mevcut `last.pt`/`best.pt` ve Excel logu bozuk girdiyle eğitildiği için kullanılamaz. Val Dice'ın artık monoton yükselmesi bekleniyor. Stabilize olduktan sonra SegFormer-B2 dahil diğer 5 mimari sırayla denenecek (notebook kodu hazır, hiç çalıştırılmadı).
+
+> **Not**: bu repodaki `.ipynb` güncellendi ama Colab oturumu ayrı — düzeltmelerin etkili olması için Drive'daki notebook'un yeniden yüklenmesi ya da değişen 7 hücrenin elle kopyalanması gerekiyor (bkz. Kod Yapısı bölümündeki senkronizasyon notu). Değişen hücreler: Dataset+Augmentation, Model Factory, Loss/Metrikler, Checkpoint/Resume, Eğitim Döngüsü (2 hücre), 5 Vaka Görseli.
 
 ## Uygulama Sırası
 
