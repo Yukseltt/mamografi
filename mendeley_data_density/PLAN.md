@@ -122,7 +122,8 @@ Bu tam olarak gözlenen semptomu üretir: BatchNorm train-mode'da batch istatist
 4. **Tüm metrikler per-görüntü tanımına geçirildi** — Dice/IoU/Precision/Recall/F1 aynı TP/FP/FN'den, `torchmetrics` bağımlılığı metrik hesabından çıktı (bkz. Hiperparametreler).
 5. **Yerel `.npy` cache** (`/content/npy_cache`) — her epoch 447 `.nii.gz` dosyasını Drive'dan okumak eğitimin en yavaş kısmıydı; ilk okumada yerel diske yazılıp sonraki epoch'larda oradan okunuyor (worker'lar arası yarım dosya olmasın diye atomik `os.replace`).
 6. **`epochs_without_improve` checkpoint'e eklendi** — resume'da early stopping sayacı sıfırlanıyordu.
-7. Küçük: train loss `drop_last=True` yüzünden görülmeyen 15 örneği de bölene katıyordu (~%3 düşük raporlanıyordu); `find_resumable_checkpoint` checkpoint'i iki kez yüklüyordu (artık yüklenen dict doğrudan `restore_checkpoint`'e veriliyor).
+7. **Loss fp32'de hesaplanıyor (`logits.float()`)** — AMP altında logits fp16 geliyordu ve soft-Dice'ın `probs.sum()` terimi 262.144 piksel üzerinden alındığı için ortalama olasılık ~0.25'i geçtiğinde fp16 tavanını (65504) aşıp `inf`'e dönüyordu. Bu durumda `dice=0`, `dice_loss=1` sabitleniyor ve **hiç gradyan üretmiyordu** — yani loss fiilen salt BCE'ye düşüyordu. En çok yüksek yoğunluklu vakalarda (dens alan geniş) tetiklendiği için Dice terimi tam gerektiği yerde sessizce kapanıyordu. Eski logdaki epoch 0 `train_loss=1.6177` değeri bununla tutarlı (BCE ~0.62 + sabitlenmiş dice_loss 1.0).
+8. Küçük: train loss `drop_last=True` yüzünden görülmeyen 15 örneği de bölene katıyordu (~%3 düşük raporlanıyordu); `find_resumable_checkpoint` checkpoint'i iki kez yüklüyordu (artık yüklenen dict doğrudan `restore_checkpoint`'e veriliyor).
 
 Dataset hücresinin sonuna bir **doğrulama print'i** eklendi: girdi tensörünün aralığını ve maske değerlerini basıyor. Aralık `~[-2.1, 2.6]` görünmeli; hepsi -2.1 civarında sıkışıksa `max_pixel_value` hâlâ yanlış demektir.
 
@@ -131,6 +132,13 @@ Dataset hücresinin sonuna bir **doğrulama print'i** eklendi: girdi tensörün�
 `unet_resnet34`'ü **sıfırdan** (`RESUME=False`) yeniden eğitmek — mevcut `last.pt`/`best.pt` ve Excel logu bozuk girdiyle eğitildiği için kullanılamaz. Val Dice'ın artık monoton yükselmesi bekleniyor. Stabilize olduktan sonra SegFormer-B2 dahil diğer 5 mimari sırayla denenecek (notebook kodu hazır, hiç çalıştırılmadı).
 
 > **Not**: bu repodaki `.ipynb` güncellendi ama Colab oturumu ayrı — düzeltmelerin etkili olması için Drive'daki notebook'un yeniden yüklenmesi ya da değişen 7 hücrenin elle kopyalanması gerekiyor (bkz. Kod Yapısı bölümündeki senkronizasyon notu). Değişen hücreler: Dataset+Augmentation, Model Factory, Loss/Metrikler, Checkpoint/Resume, Eğitim Döngüsü (2 hücre), 5 Vaka Görseli.
+
+### İlk epoch'ta kontrol edilecekler
+
+- Dataset hücresinin doğrulama print'i: `Girdi tensor araligi: [-2.1xx, 2.2xx]` benzeri geniş bir aralık, `maske degerleri: [0.0, 1.0]`. Aralık `[-2.118, -2.101]` gibi dar gelirse `max_pixel_value` düzeltmesi uygulanmamış demektir.
+- Epoch 0 `train_loss` **1.6 değil ~1.3-1.4 civarı** olmalı — Dice terimi artık `inf`'e düşmediği için gerçek bir değer üretiyor.
+- Val Dice ilk birkaç epoch'tan sonra monoton yükselmeli; 0.0002 ↔ 0.5 arası sıçrama tekrarlarsa normalizasyon düzeltmesi Colab oturumuna geçmemiştir.
+- İlk epoch Drive'dan okuma yüzünden yavaş, ikinci epoch'tan itibaren `.npy` cache devreye girip belirgin hızlanmalı.
 
 ## Uygulama Sırası
 
