@@ -1,5 +1,6 @@
 # Sanal ortamlar
 .venv/
+.venv_mmdet/
 venv/
 
 # Python cache
@@ -23,3 +24,5 @@ egitim/islenmis/
 .idea/
 .DS_Store
 Thumbs.db
+
+real_time_segmentasyon/Dataset_BUSI_with_GT/

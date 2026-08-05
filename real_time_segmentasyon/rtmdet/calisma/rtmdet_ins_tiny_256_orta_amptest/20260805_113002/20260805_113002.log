@@ -1,0 +1,961 @@
+2026/08/05 11:30:03 - mmengine - INFO - 
+------------------------------------------------------------
+System environment:
+    sys.platform: win32
+    Python: 3.10.0 (tags/v3.10.0:b494f59, Oct  4 2021, 19:00:18) [MSC v.1929 64 bit (AMD64)]
+    CUDA available: True
+    MUSA available: False
+    numpy_random_seed: 42
+    GPU 0: NVIDIA GeForce RTX 2060
+    CUDA_HOME: C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8
+    NVCC: Cuda compilation tools, release 12.8, V12.8.93
+    GCC: n/a
+    PyTorch: 2.6.0+cu124
+    PyTorch compiling details: PyTorch built with:
+  - C++ Version: 201703
+  - MSVC 192930157
+  - Intel(R) oneAPI Math Kernel Library Version 2025.0.1-Product Build 20241031 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v3.5.3 (Git Hash 66f0cb9eb66affd2da3bf5f8d897376f04aae6af)
+  - OpenMP 2019
+  - LAPACK is enabled (usually provided by MKL)
+  - CPU capability usage: AVX2
+  - CUDA Runtime 12.4
+  - NVCC architecture flags: -gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_61,code=sm_61;-gencode;arch=compute_70,code=sm_70;-gencode;arch=compute_75,code=sm_75;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86;-gencode;arch=compute_90,code=sm_90
+  - CuDNN 90.1
+  - Magma 2.5.4
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, COMMIT_SHA=2236df1770800ffea5697b11b0bb0d910b2e59e1, CUDA_VERSION=12.4, CUDNN_VERSION=9.1.0, CXX_COMPILER=C:/actions-runner/_work/pytorch/pytorch/pytorch/.ci/pytorch/windows/tmp_bin/sccache-cl.exe, CXX_FLAGS=/DWIN32 /D_WINDOWS /GR /EHsc /Zc:__cplusplus /bigobj /FS /utf-8 -DUSE_PTHREADPOOL -DNDEBUG -DUSE_KINETO -DLIBKINETO_NOCUPTI -DLIBKINETO_NOROCTRACER -DLIBKINETO_NOXPUPTI=ON -DUSE_FBGEMM -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE /wd4624 /wd4068 /wd4067 /wd4267 /wd4661 /wd4717 /wd4244 /wd4804 /wd4273, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, TORCH_VERSION=2.6.0, USE_CUDA=ON, USE_CUDNN=ON, USE_CUSPARSELT=OFF, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_GLOO=ON, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=OFF, USE_NNPACK=OFF, USE_OPENMP=ON, USE_ROCM=OFF, USE_ROCM_KERNEL_ASSERT=OFF, 
+
+    TorchVision: 0.21.0+cu124
+    OpenCV: 5.0.0
+    MMEngine: 0.10.7
+
+Runtime environment:
+    cudnn_benchmark: False
+    mp_cfg: {'mp_start_method': 'fork', 'opencv_num_threads': 0}
+    dist_cfg: {'backend': 'nccl'}
+    seed: 42
+    deterministic: False
+    Distributed launcher: none
+    Distributed training: False
+    GPU number: 1
+------------------------------------------------------------
+
+2026/08/05 11:30:04 - mmengine - INFO - Config:
+ALBU = [
+    dict(p=0.5, type='HorizontalFlip'),
+    dict(
+        p=0.7,
+        rotate=(
+            -15,
+            15,
+        ),
+        scale=(
+            0.85,
+            1.15,
+        ),
+        translate_percent=(
+            -0.1,
+            0.1,
+        ),
+        type='Affine'),
+    dict(alpha=30, p=0.25, sigma=6, type='ElasticTransform'),
+    dict(
+        brightness_limit=0.2,
+        contrast_limit=0.2,
+        p=0.5,
+        type='RandomBrightnessContrast'),
+    dict(gamma_limit=(
+        80,
+        120,
+    ), p=0.3, type='RandomGamma'),
+    dict(
+        elementwise=True,
+        multiplier=(
+            0.85,
+            1.15,
+        ),
+        p=0.3,
+        type='MultiplicativeNoise'),
+    dict(blur_limit=7, p=0.2, type='MotionBlur'),
+]
+ANN = 'd:/mamografi/real_time_segmentasyon/veri/coco'
+AUG_SEVIYE = 'orta'
+BATCH = 8
+GIRDI = 256
+KOK = 'd:/mamografi/real_time_segmentasyon'
+MAX_EPOCH = 100
+albu_sarmalayici = dict(
+    bbox_params=dict(
+        filter_lost_elements=True,
+        format='pascal_voc',
+        label_fields=[
+            'gt_bboxes_labels',
+        ],
+        min_visibility=0.0,
+        type='BboxParams'),
+    keymap=dict(gt_bboxes='bboxes', gt_masks='masks', img='image'),
+    transforms=[
+        dict(p=0.5, type='HorizontalFlip'),
+        dict(
+            p=0.7,
+            rotate=(
+                -15,
+                15,
+            ),
+            scale=(
+                0.85,
+                1.15,
+            ),
+            translate_percent=(
+                -0.1,
+                0.1,
+            ),
+            type='Affine'),
+        dict(alpha=30, p=0.25, sigma=6, type='ElasticTransform'),
+        dict(
+            brightness_limit=0.2,
+            contrast_limit=0.2,
+            p=0.5,
+            type='RandomBrightnessContrast'),
+        dict(gamma_limit=(
+            80,
+            120,
+        ), p=0.3, type='RandomGamma'),
+        dict(
+            elementwise=True,
+            multiplier=(
+                0.85,
+                1.15,
+            ),
+            p=0.3,
+            type='MultiplicativeNoise'),
+        dict(blur_limit=7, p=0.2, type='MotionBlur'),
+    ],
+    type='AlbuBosGuvenli')
+auto_scale_lr = dict(base_batch_size=16, enable=False)
+backend_args = None
+base_lr = 0.000125
+checkpoint = 'https://download.openmmlab.com/mmdetection/v3.0/rtmdet/cspnext_rsb_pretrain/cspnext-tiny_imagenet_600e.pth'
+custom_hooks = []
+custom_imports = dict(
+    allow_failed_imports=False, imports=[
+        'ozel_transformlar',
+    ])
+data_root = 'd:/mamografi/real_time_segmentasyon/Dataset_BUSI_with_GT/'
+dataset_type = 'CocoDataset'
+default_hooks = dict(
+    checkpoint=None,
+    logger=dict(_scope_='mmdet', interval=10, type='LoggerHook'),
+    param_scheduler=dict(_scope_='mmdet', type='ParamSchedulerHook'),
+    sampler_seed=dict(_scope_='mmdet', type='DistSamplerSeedHook'),
+    timer=dict(_scope_='mmdet', type='IterTimerHook'),
+    visualization=dict(_scope_='mmdet', type='DetVisualizationHook'))
+default_scope = 'mmdet'
+env_cfg = dict(
+    cudnn_benchmark=False,
+    dist_cfg=dict(backend='nccl'),
+    mp_cfg=dict(mp_start_method='fork', opencv_num_threads=0))
+img_scales = [
+    (
+        640,
+        640,
+    ),
+    (
+        320,
+        320,
+    ),
+    (
+        960,
+        960,
+    ),
+]
+interval = 10
+load_from = 'https://download.openmmlab.com/mmdetection/v3.0/rtmdet/rtmdet-ins_tiny_8xb32-300e_coco/rtmdet-ins_tiny_8xb32-300e_coco_20221130_151727-ec670f7e.pth'
+log_level = 'INFO'
+log_processor = dict(
+    _scope_='mmdet', by_epoch=True, type='LogProcessor', window_size=50)
+max_epochs = 300
+metainfo = dict(
+    classes=('lezyon', ), palette=[
+        (
+            220,
+            20,
+            60,
+        ),
+    ])
+model = dict(
+    _scope_='mmdet',
+    backbone=dict(
+        act_cfg=dict(inplace=True, type='SiLU'),
+        arch='P5',
+        channel_attention=True,
+        deepen_factor=0.167,
+        expand_ratio=0.5,
+        init_cfg=dict(
+            checkpoint=
+            'https://download.openmmlab.com/mmdetection/v3.0/rtmdet/cspnext_rsb_pretrain/cspnext-tiny_imagenet_600e.pth',
+            prefix='backbone.',
+            type='Pretrained'),
+        norm_cfg=dict(type='SyncBN'),
+        type='CSPNeXt',
+        widen_factor=0.375),
+    bbox_head=dict(
+        act_cfg=dict(inplace=True, type='SiLU'),
+        anchor_generator=dict(
+            offset=0, strides=[
+                8,
+                16,
+                32,
+            ], type='MlvlPointGenerator'),
+        bbox_coder=dict(type='DistancePointBBoxCoder'),
+        feat_channels=96,
+        in_channels=96,
+        loss_bbox=dict(loss_weight=2.0, type='GIoULoss'),
+        loss_cls=dict(
+            beta=2.0,
+            loss_weight=1.0,
+            type='QualityFocalLoss',
+            use_sigmoid=True),
+        loss_mask=dict(
+            eps=5e-06, loss_weight=2.0, reduction='mean', type='DiceLoss'),
+        norm_cfg=dict(requires_grad=True, type='SyncBN'),
+        num_classes=1,
+        pred_kernel_size=1,
+        share_conv=True,
+        stacked_convs=2,
+        type='RTMDetInsSepBNHead'),
+    data_preprocessor=dict(
+        batch_augments=None,
+        bgr_to_rgb=False,
+        mean=[
+            103.53,
+            116.28,
+            123.675,
+        ],
+        std=[
+            57.375,
+            57.12,
+            58.395,
+        ],
+        type='DetDataPreprocessor'),
+    neck=dict(
+        act_cfg=dict(inplace=True, type='SiLU'),
+        expand_ratio=0.5,
+        in_channels=[
+            96,
+            192,
+            384,
+        ],
+        norm_cfg=dict(type='SyncBN'),
+        num_csp_blocks=1,
+        out_channels=96,
+        type='CSPNeXtPAFPN'),
+    test_cfg=dict(
+        mask_thr_binary=0.5,
+        max_per_img=100,
+        min_bbox_size=0,
+        nms=dict(iou_threshold=0.6, type='nms'),
+        nms_pre=1000,
+        score_thr=0.05),
+    train_cfg=dict(
+        allowed_border=-1,
+        assigner=dict(topk=13, type='DynamicSoftLabelAssigner'),
+        debug=False,
+        pos_weight=-1),
+    type='RTMDet')
+optim_wrapper = dict(
+    _scope_='mmdet',
+    clip_grad=dict(max_norm=1.0),
+    optimizer=dict(lr=0.000125, type='AdamW', weight_decay=0.05),
+    paramwise_cfg=dict(
+        bias_decay_mult=0, bypass_duplicate=True, norm_decay_mult=0),
+    type='AmpOptimWrapper')
+param_scheduler = [
+    dict(
+        begin=0, by_epoch=False, end=200, start_factor=0.001, type='LinearLR'),
+    dict(
+        T_max=50,
+        begin=50,
+        by_epoch=True,
+        convert_to_iter_based=True,
+        end=100,
+        eta_min=6.25e-06,
+        type='CosineAnnealingLR'),
+]
+randomness = dict(deterministic=False, seed=42)
+resume = False
+stage2_num_epochs = 20
+test_cfg = dict(_scope_='mmdet', type='TestLoop')
+test_dataloader = dict(
+    batch_size=1,
+    dataset=dict(
+        _scope_='mmdet',
+        ann_file='d:/mamografi/real_time_segmentasyon/veri/coco/busi_test.json',
+        backend_args=None,
+        data_prefix=dict(img=''),
+        data_root='d:/mamografi/real_time_segmentasyon/Dataset_BUSI_with_GT/',
+        metainfo=dict(classes=('lezyon', ), palette=[
+            (
+                220,
+                20,
+                60,
+            ),
+        ]),
+        pipeline=[
+            dict(backend_args=None, type='LoadImageFromFile'),
+            dict(keep_ratio=False, scale=(
+                256,
+                256,
+            ), type='Resize'),
+            dict(
+                poly2mask=True,
+                type='LoadAnnotations',
+                with_bbox=True,
+                with_mask=True),
+            dict(
+                meta_keys=(
+                    'img_id',
+                    'img_path',
+                    'ori_shape',
+                    'img_shape',
+                    'scale_factor',
+                ),
+                type='PackDetInputs'),
+        ],
+        test_mode=True,
+        type='CocoDataset'),
+    drop_last=False,
+    num_workers=2,
+    persistent_workers=True,
+    sampler=dict(_scope_='mmdet', shuffle=False, type='DefaultSampler'))
+test_evaluator = dict(
+    _scope_='mmdet',
+    ann_file='d:/mamografi/real_time_segmentasyon/veri/coco/busi_test.json',
+    backend_args=None,
+    format_only=False,
+    metric=[
+        'bbox',
+        'segm',
+    ],
+    proposal_nums=(
+        100,
+        1,
+        10,
+    ),
+    type='CocoMetric')
+test_pipeline = [
+    dict(backend_args=None, type='LoadImageFromFile'),
+    dict(keep_ratio=False, scale=(
+        256,
+        256,
+    ), type='Resize'),
+    dict(
+        poly2mask=True, type='LoadAnnotations', with_bbox=True,
+        with_mask=True),
+    dict(
+        meta_keys=(
+            'img_id',
+            'img_path',
+            'ori_shape',
+            'img_shape',
+            'scale_factor',
+        ),
+        type='PackDetInputs'),
+]
+train_cfg = dict(
+    _scope_='mmdet',
+    dynamic_intervals=None,
+    max_epochs=1,
+    type='EpochBasedTrainLoop',
+    val_interval=1)
+train_dataloader = dict(
+    batch_sampler=None,
+    batch_size=8,
+    dataset=dict(
+        ann_file=
+        'd:/mamografi/real_time_segmentasyon/veri/coco/busi_train.json',
+        data_prefix=dict(img=''),
+        data_root='d:/mamografi/real_time_segmentasyon/Dataset_BUSI_with_GT/',
+        filter_cfg=dict(filter_empty_gt=False, min_size=0),
+        metainfo=dict(classes=('lezyon', ), palette=[
+            (
+                220,
+                20,
+                60,
+            ),
+        ]),
+        pipeline=[
+            dict(backend_args=None, type='LoadImageFromFile'),
+            dict(
+                poly2mask=True,
+                type='LoadAnnotations',
+                with_bbox=True,
+                with_mask=True),
+            dict(
+                bbox_params=dict(
+                    filter_lost_elements=True,
+                    format='pascal_voc',
+                    label_fields=[
+                        'gt_bboxes_labels',
+                    ],
+                    min_visibility=0.0,
+                    type='BboxParams'),
+                keymap=dict(gt_bboxes='bboxes', gt_masks='masks', img='image'),
+                transforms=[
+                    dict(p=0.5, type='HorizontalFlip'),
+                    dict(
+                        p=0.7,
+                        rotate=(
+                            -15,
+                            15,
+                        ),
+                        scale=(
+                            0.85,
+                            1.15,
+                        ),
+                        translate_percent=(
+                            -0.1,
+                            0.1,
+                        ),
+                        type='Affine'),
+                    dict(alpha=30, p=0.25, sigma=6, type='ElasticTransform'),
+                    dict(
+                        brightness_limit=0.2,
+                        contrast_limit=0.2,
+                        p=0.5,
+                        type='RandomBrightnessContrast'),
+                    dict(gamma_limit=(
+                        80,
+                        120,
+                    ), p=0.3, type='RandomGamma'),
+                    dict(
+                        elementwise=True,
+                        multiplier=(
+                            0.85,
+                            1.15,
+                        ),
+                        p=0.3,
+                        type='MultiplicativeNoise'),
+                    dict(blur_limit=7, p=0.2, type='MotionBlur'),
+                ],
+                type='AlbuBosGuvenli'),
+            dict(keep_ratio=False, scale=(
+                256,
+                256,
+            ), type='Resize'),
+            dict(type='PackDetInputs'),
+        ],
+        type='CocoDataset'),
+    num_workers=0,
+    persistent_workers=False,
+    pin_memory=True,
+    sampler=dict(_scope_='mmdet', shuffle=True, type='DefaultSampler'))
+train_pipeline = [
+    dict(backend_args=None, type='LoadImageFromFile'),
+    dict(
+        poly2mask=True, type='LoadAnnotations', with_bbox=True,
+        with_mask=True),
+    dict(
+        bbox_params=dict(
+            filter_lost_elements=True,
+            format='pascal_voc',
+            label_fields=[
+                'gt_bboxes_labels',
+            ],
+            min_visibility=0.0,
+            type='BboxParams'),
+        keymap=dict(gt_bboxes='bboxes', gt_masks='masks', img='image'),
+        transforms=[
+            dict(p=0.5, type='HorizontalFlip'),
+            dict(
+                p=0.7,
+                rotate=(
+                    -15,
+                    15,
+                ),
+                scale=(
+                    0.85,
+                    1.15,
+                ),
+                translate_percent=(
+                    -0.1,
+                    0.1,
+                ),
+                type='Affine'),
+            dict(alpha=30, p=0.25, sigma=6, type='ElasticTransform'),
+            dict(
+                brightness_limit=0.2,
+                contrast_limit=0.2,
+                p=0.5,
+                type='RandomBrightnessContrast'),
+            dict(gamma_limit=(
+                80,
+                120,
+            ), p=0.3, type='RandomGamma'),
+            dict(
+                elementwise=True,
+                multiplier=(
+                    0.85,
+                    1.15,
+                ),
+                p=0.3,
+                type='MultiplicativeNoise'),
+            dict(blur_limit=7, p=0.2, type='MotionBlur'),
+        ],
+        type='AlbuBosGuvenli'),
+    dict(keep_ratio=False, scale=(
+        256,
+        256,
+    ), type='Resize'),
+    dict(type='PackDetInputs'),
+]
+train_pipeline_stage2 = [
+    dict(_scope_='mmdet', backend_args=None, type='LoadImageFromFile'),
+    dict(
+        _scope_='mmdet',
+        poly2mask=False,
+        type='LoadAnnotations',
+        with_bbox=True,
+        with_mask=True),
+    dict(
+        _scope_='mmdet',
+        keep_ratio=True,
+        ratio_range=(
+            0.5,
+            2.0,
+        ),
+        scale=(
+            640,
+            640,
+        ),
+        type='RandomResize'),
+    dict(
+        _scope_='mmdet',
+        allow_negative_crop=True,
+        crop_size=(
+            640,
+            640,
+        ),
+        recompute_bbox=True,
+        type='RandomCrop'),
+    dict(_scope_='mmdet', min_gt_bbox_wh=(
+        1,
+        1,
+    ), type='FilterAnnotations'),
+    dict(_scope_='mmdet', type='YOLOXHSVRandomAug'),
+    dict(_scope_='mmdet', prob=0.5, type='RandomFlip'),
+    dict(
+        _scope_='mmdet',
+        pad_val=dict(img=(
+            114,
+            114,
+            114,
+        )),
+        size=(
+            640,
+            640,
+        ),
+        type='Pad'),
+    dict(_scope_='mmdet', type='PackDetInputs'),
+]
+tta_model = dict(
+    _scope_='mmdet',
+    tta_cfg=dict(max_per_img=100, nms=dict(iou_threshold=0.6, type='nms')),
+    type='DetTTAModel')
+tta_pipeline = [
+    dict(_scope_='mmdet', backend_args=None, type='LoadImageFromFile'),
+    dict(
+        _scope_='mmdet',
+        transforms=[
+            [
+                dict(keep_ratio=True, scale=(
+                    640,
+                    640,
+                ), type='Resize'),
+                dict(keep_ratio=True, scale=(
+                    320,
+                    320,
+                ), type='Resize'),
+                dict(keep_ratio=True, scale=(
+                    960,
+                    960,
+                ), type='Resize'),
+            ],
+            [
+                dict(prob=1.0, type='RandomFlip'),
+                dict(prob=0.0, type='RandomFlip'),
+            ],
+            [
+                dict(
+                    pad_val=dict(img=(
+                        114,
+                        114,
+                        114,
+                    )),
+                    size=(
+                        960,
+                        960,
+                    ),
+                    type='Pad'),
+            ],
+            [
+                dict(type='LoadAnnotations', with_bbox=True),
+            ],
+            [
+                dict(
+                    meta_keys=(
+                        'img_id',
+                        'img_path',
+                        'ori_shape',
+                        'img_shape',
+                        'scale_factor',
+                        'flip',
+                        'flip_direction',
+                    ),
+                    type='PackDetInputs'),
+            ],
+        ],
+        type='TestTimeAug'),
+]
+val_cfg = dict(_scope_='mmdet', type='ValLoop')
+val_dataloader = dict(
+    batch_size=1,
+    dataset=dict(
+        _scope_='mmdet',
+        ann_file='d:/mamografi/real_time_segmentasyon/veri/coco/busi_val.json',
+        backend_args=None,
+        data_prefix=dict(img=''),
+        data_root='d:/mamografi/real_time_segmentasyon/Dataset_BUSI_with_GT/',
+        metainfo=dict(classes=('lezyon', ), palette=[
+            (
+                220,
+                20,
+                60,
+            ),
+        ]),
+        pipeline=[
+            dict(backend_args=None, type='LoadImageFromFile'),
+            dict(keep_ratio=False, scale=(
+                256,
+                256,
+            ), type='Resize'),
+            dict(
+                poly2mask=True,
+                type='LoadAnnotations',
+                with_bbox=True,
+                with_mask=True),
+            dict(
+                meta_keys=(
+                    'img_id',
+                    'img_path',
+                    'ori_shape',
+                    'img_shape',
+                    'scale_factor',
+                ),
+                type='PackDetInputs'),
+        ],
+        test_mode=True,
+        type='CocoDataset'),
+    drop_last=False,
+    num_workers=2,
+    persistent_workers=True,
+    sampler=dict(_scope_='mmdet', shuffle=False, type='DefaultSampler'))
+val_evaluator = dict(
+    _scope_='mmdet',
+    ann_file='d:/mamografi/real_time_segmentasyon/veri/coco/busi_val.json',
+    backend_args=None,
+    format_only=False,
+    metric=[
+        'bbox',
+        'segm',
+    ],
+    proposal_nums=(
+        100,
+        1,
+        10,
+    ),
+    type='CocoMetric')
+vis_backends = [
+    dict(_scope_='mmdet', type='LocalVisBackend'),
+]
+visualizer = dict(
+    _scope_='mmdet',
+    name='visualizer',
+    type='DetLocalVisualizer',
+    vis_backends=[
+        dict(type='LocalVisBackend'),
+    ])
+work_dir = 'd:/mamografi/real_time_segmentasyon/rtmdet/calisma/rtmdet_ins_tiny_256_orta_amptest'
+
+2026/08/05 11:30:05 - mmengine - INFO - Distributed training is not used, all SyncBatchNorm (SyncBN) layers in the model will be automatically reverted to BatchNormXd layers if they are used.
+2026/08/05 11:30:05 - mmengine - INFO - Hooks will be executed in the following order:
+before_run:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+before_train:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+before_train_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(NORMAL      ) DistSamplerSeedHook                
+ -------------------- 
+before_train_iter:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_train_iter:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+(LOW         ) ParamSchedulerHook                 
+ -------------------- 
+after_train_epoch:
+(NORMAL      ) IterTimerHook                      
+(LOW         ) ParamSchedulerHook                 
+ -------------------- 
+before_val:
+(VERY_HIGH   ) RuntimeInfoHook                    
+ -------------------- 
+before_val_epoch:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+before_val_iter:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_val_iter:
+(NORMAL      ) IterTimerHook                      
+(NORMAL      ) DetVisualizationHook               
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_val_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+(LOW         ) ParamSchedulerHook                 
+ -------------------- 
+after_val:
+(VERY_HIGH   ) RuntimeInfoHook                    
+ -------------------- 
+after_train:
+(VERY_HIGH   ) RuntimeInfoHook                    
+ -------------------- 
+before_test:
+(VERY_HIGH   ) RuntimeInfoHook                    
+ -------------------- 
+before_test_epoch:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+before_test_iter:
+(NORMAL      ) IterTimerHook                      
+ -------------------- 
+after_test_iter:
+(NORMAL      ) IterTimerHook                      
+(NORMAL      ) DetVisualizationHook               
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_test_epoch:
+(VERY_HIGH   ) RuntimeInfoHook                    
+(NORMAL      ) IterTimerHook                      
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+after_test:
+(VERY_HIGH   ) RuntimeInfoHook                    
+ -------------------- 
+after_run:
+(BELOW_NORMAL) LoggerHook                         
+ -------------------- 
+2026/08/05 11:30:07 - mmengine - INFO - Load checkpoint from https://download.openmmlab.com/mmdetection/v3.0/rtmdet/rtmdet-ins_tiny_8xb32-300e_coco/rtmdet-ins_tiny_8xb32-300e_coco_20221130_151727-ec670f7e.pth
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stem.0.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stem.0.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stem.1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stem.1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stem.2.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stem.2.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage1.0.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage1.0.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage1.1.main_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage1.1.main_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage1.1.short_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage1.1.short_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage1.1.final_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage1.1.final_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage1.1.blocks.0.conv1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage1.1.blocks.0.conv1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage1.1.blocks.0.conv2.depthwise_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage1.1.blocks.0.conv2.depthwise_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage1.1.blocks.0.conv2.pointwise_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage1.1.blocks.0.conv2.pointwise_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage1.1.attention.fc.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage2.0.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage2.0.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage2.1.main_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage2.1.main_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage2.1.short_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage2.1.short_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage2.1.final_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage2.1.final_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage2.1.blocks.0.conv1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage2.1.blocks.0.conv1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage2.1.blocks.0.conv2.depthwise_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage2.1.blocks.0.conv2.depthwise_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage2.1.blocks.0.conv2.pointwise_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage2.1.blocks.0.conv2.pointwise_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage2.1.attention.fc.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage3.0.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage3.0.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage3.1.main_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage3.1.main_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage3.1.short_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage3.1.short_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage3.1.final_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage3.1.final_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage3.1.blocks.0.conv1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage3.1.blocks.0.conv1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage3.1.blocks.0.conv2.depthwise_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage3.1.blocks.0.conv2.depthwise_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage3.1.blocks.0.conv2.pointwise_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage3.1.blocks.0.conv2.pointwise_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage3.1.attention.fc.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.0.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.0.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.1.conv1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.1.conv1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.1.conv2.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.1.conv2.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.2.main_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.2.main_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.2.short_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.2.short_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.2.final_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.2.final_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.2.blocks.0.conv1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.2.blocks.0.conv1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.2.blocks.0.conv2.depthwise_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.2.blocks.0.conv2.depthwise_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.2.blocks.0.conv2.pointwise_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.2.blocks.0.conv2.pointwise_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- backbone.stage4.2.attention.fc.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.reduce_layers.0.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.reduce_layers.0.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.reduce_layers.1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.reduce_layers.1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.0.main_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.0.main_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.0.short_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.0.short_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.0.final_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.0.final_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.0.blocks.0.conv1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.0.blocks.0.conv1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.0.blocks.0.conv2.depthwise_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.0.blocks.0.conv2.depthwise_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.0.blocks.0.conv2.pointwise_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.0.blocks.0.conv2.pointwise_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.1.main_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.1.main_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.1.short_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.1.short_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.1.final_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.1.final_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.1.blocks.0.conv1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.1.blocks.0.conv1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.1.blocks.0.conv2.depthwise_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.1.blocks.0.conv2.depthwise_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.1.blocks.0.conv2.pointwise_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.top_down_blocks.1.blocks.0.conv2.pointwise_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.downsamples.0.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.downsamples.0.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.downsamples.1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.downsamples.1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.0.main_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.0.main_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.0.short_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.0.short_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.0.final_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.0.final_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.0.blocks.0.conv1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.0.blocks.0.conv1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.0.blocks.0.conv2.depthwise_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.0.blocks.0.conv2.depthwise_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.0.blocks.0.conv2.pointwise_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.0.blocks.0.conv2.pointwise_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.1.main_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.1.main_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.1.short_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.1.short_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.1.final_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.1.final_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.1.blocks.0.conv1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.1.blocks.0.conv1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.1.blocks.0.conv2.depthwise_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.1.blocks.0.conv2.depthwise_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.1.blocks.0.conv2.pointwise_conv.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.bottom_up_blocks.1.blocks.0.conv2.pointwise_conv.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.out_convs.0.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.out_convs.0.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.out_convs.1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.out_convs.1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.out_convs.2.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- neck.out_convs.2.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.cls_convs.0.0.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.cls_convs.0.0.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.cls_convs.0.1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.cls_convs.0.1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - WARNING - bbox_head.cls_convs.1.0.conv is duplicate. It is skipped since bypass_duplicate=True
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.cls_convs.1.0.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.cls_convs.1.0.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - WARNING - bbox_head.cls_convs.1.1.conv is duplicate. It is skipped since bypass_duplicate=True
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.cls_convs.1.1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.cls_convs.1.1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - WARNING - bbox_head.cls_convs.2.0.conv is duplicate. It is skipped since bypass_duplicate=True
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.cls_convs.2.0.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.cls_convs.2.0.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - WARNING - bbox_head.cls_convs.2.1.conv is duplicate. It is skipped since bypass_duplicate=True
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.cls_convs.2.1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.cls_convs.2.1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - WARNING - bbox_head.reg_convs.0.0.conv is duplicate. It is skipped since bypass_duplicate=True
+2026/08/05 11:30:07 - mmengine - WARNING - bbox_head.reg_convs.0.0.bn is duplicate. It is skipped since bypass_duplicate=True
+2026/08/05 11:30:07 - mmengine - WARNING - bbox_head.reg_convs.0.1.conv is duplicate. It is skipped since bypass_duplicate=True
+2026/08/05 11:30:07 - mmengine - WARNING - bbox_head.reg_convs.0.1.bn is duplicate. It is skipped since bypass_duplicate=True
+2026/08/05 11:30:07 - mmengine - WARNING - bbox_head.reg_convs.1.0.conv is duplicate. It is skipped since bypass_duplicate=True
+2026/08/05 11:30:07 - mmengine - WARNING - bbox_head.reg_convs.1.0.bn is duplicate. It is skipped since bypass_duplicate=True
+2026/08/05 11:30:07 - mmengine - WARNING - bbox_head.reg_convs.1.1.conv is duplicate. It is skipped since bypass_duplicate=True
+2026/08/05 11:30:07 - mmengine - WARNING - bbox_head.reg_convs.1.1.bn is duplicate. It is skipped since bypass_duplicate=True
+2026/08/05 11:30:07 - mmengine - WARNING - bbox_head.reg_convs.2.0.conv is duplicate. It is skipped since bypass_duplicate=True
+2026/08/05 11:30:07 - mmengine - WARNING - bbox_head.reg_convs.2.0.bn is duplicate. It is skipped since bypass_duplicate=True
+2026/08/05 11:30:07 - mmengine - WARNING - bbox_head.reg_convs.2.1.conv is duplicate. It is skipped since bypass_duplicate=True
+2026/08/05 11:30:07 - mmengine - WARNING - bbox_head.reg_convs.2.1.bn is duplicate. It is skipped since bypass_duplicate=True
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.kernel_convs.0.0.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.kernel_convs.0.0.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.kernel_convs.0.1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.kernel_convs.0.1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.kernel_convs.1.0.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.kernel_convs.1.0.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.kernel_convs.1.1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.kernel_convs.1.1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.kernel_convs.2.0.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.kernel_convs.2.0.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.kernel_convs.2.1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.kernel_convs.2.1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.rtm_cls.0.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.rtm_cls.1.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.rtm_cls.2.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.rtm_reg.0.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.rtm_reg.1.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.rtm_reg.2.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.rtm_kernel.0.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.rtm_kernel.1.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.rtm_kernel.2.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.mask_head.fusion_conv.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.mask_head.stacked_convs.0.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.mask_head.stacked_convs.0.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.mask_head.stacked_convs.1.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.mask_head.stacked_convs.1.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.mask_head.stacked_convs.2.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.mask_head.stacked_convs.2.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.mask_head.stacked_convs.3.bn.weight:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.mask_head.stacked_convs.3.bn.bias:weight_decay=0.0
+2026/08/05 11:30:07 - mmengine - INFO - paramwise_options -- bbox_head.mask_head.projection.bias:weight_decay=0.0
