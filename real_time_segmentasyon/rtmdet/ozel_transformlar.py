@@ -1,7 +1,10 @@
-"""Projeye ozel mmdet transformlari."""
+"""Projeye ozel mmdet transformlari ve metrikleri."""
 import numpy as np
+import torch
+import torch.nn.functional as F
 from mmdet.datasets.transforms import Albu
-from mmdet.registry import TRANSFORMS
+from mmdet.evaluation import CocoMetric
+from mmdet.registry import METRICS, TRANSFORMS
 from mmdet.structures.bbox import HorizontalBoxes
 
 
@@ -61,3 +64,40 @@ class AlbuBosGuvenli(Albu):
             results['masks'] = ori_masks.__class__(results['masks'],
                                                    ori_masks.height, ori_masks.width)
         return results
+
+
+@METRICS.register_module()
+class CocoMetricHizali(CocoMetric):
+    """Tahmin maskesini encode'dan once ori_shape'e getiren CocoMetric.
+
+    RTMDet-Ins'in maske geri-olceklemesi maskeyi ori_shape'ten 1 px kisa
+    uretebiliyor (mmdet 3.3.0, rtmdet_ins_head.py:500-507): tersine cevrilmis
+    scale_factor'un indisleri takas edilmis, yukseklige w_scale, genislige
+    h_scale uygulaniyor. keep_ratio=True ile bile Resize'in tamsayi
+    yuvarlamasi yuzunden w_scale != h_scale, dolayisiyla buyutulen maske
+    hedeften kisa kaliyor ve `[..., :ori_h, :ori_w]` kirpmasi bunu telafi
+    edemiyor.
+
+    COCOeval iki RLE'nin boyutu uyusmayinca IoU'yu gecersiz sayiyor, yani o
+    goruntu segm_mAP'e sifir katkiyla giriyor. Sessiz ve girdi boyutuna gore
+    degisen bir kayip: val'de 256 kosusunda 116 goruntunun 25'i (%21.6),
+    512'de 2'si (%1.7) etkileniyor -- 256'nin segm_mAP'i 0.412 gorunurken
+    hizalanmis olcumde 0.626. PLAN.md'deki "iki metrik ayrisiyor" sorusunun
+    tamami bu artefakttan geliyordu.
+
+    Dice degerlendirmemiz bundan etkilenmiyordu; orada maske zaten orijinal
+    boyuta olcekleniyor (dice_degerlendirme.py).
+    """
+
+    def process(self, data_batch, data_samples):
+        for ornek in data_samples:
+            maske = ornek.get('pred_instances', {}).get('masks')
+            if maske is None or len(maske) == 0:
+                continue
+            h, w = ornek['ori_shape'][:2]
+            if tuple(maske.shape[-2:]) == (h, w):
+                continue
+            duz = F.interpolate(maske[None].to(torch.uint8), size=(h, w),
+                                mode='nearest')[0]
+            ornek['pred_instances']['masks'] = duz.to(torch.bool)
+        super().process(data_batch, data_samples)

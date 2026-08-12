@@ -1,6 +1,6 @@
 # RTMDet-Ins egitimi + otomatik degerlendirme
 #
-# Girdi boyutu / augmentasyon seviyesi rtmdet_ins_busi.py icindeki
+# Girdi boyutu / augmentasyon seviyesi / tohum rtmdet_ins_busi.py icindeki
 # GIRDI ve AUG_SEVIYE degiskenlerinden okunur (komut satirindan ezilmez:
 # ikisi hem pipeline'da hem work_dir adinda kullaniliyor, ayrisirlarsa
 # sessizce yanlis klasore yazilir).
@@ -22,13 +22,14 @@ $PY   = "d:\mamografi\.venv_mmdet\Scripts\python.exe"
 $KOK  = "d:\mamografi\real_time_segmentasyon\rtmdet"
 $CFG  = "$KOK\rtmdet_ins_busi.py"
 
-# config'ten GIRDI / AUG_SEVIYE oku, work_dir'i ayni kuralla kur
+# config'ten GIRDI / AUG_SEVIYE / TOHUM oku, work_dir'i ayni kuralla kur
 $icerik = Get-Content $CFG -Raw
 $girdi = [regex]::Match($icerik, 'GIRDI\s*=\s*(\d+)').Groups[1].Value
 $aug   = [regex]::Match($icerik, "AUG_SEVIYE\s*=\s*'(\w+)'").Groups[1].Value
-$work  = "$KOK\calisma\rtmdet_ins_tiny_${girdi}_${aug}"
+$tohum = [regex]::Match($icerik, 'TOHUM\s*=\s*(\d+)').Groups[1].Value
+$work  = "$KOK\calisma\rtmdet_ins_tiny_${girdi}_${aug}_s${tohum}"
 
-Write-Host "girdi=$girdi  aug=$aug"
+Write-Host "girdi=$girdi  aug=$aug  tohum=$tohum"
 Write-Host "work_dir=$work"
 Write-Host ("=" * 60)
 
@@ -43,10 +44,11 @@ if ($LASTEXITCODE -ne 0) { throw "Egitim hata ile bitti (exit $LASTEXITCODE)" }
 Write-Host ("Egitim suresi: {0:hh\:mm\:ss}" -f ((Get-Date) - $t0))
 
 # ---- 2) en iyi checkpoint ----
-$ckpt = Get-ChildItem $work -Filter 'best_coco_segm*.pth' -ErrorAction SilentlyContinue |
+# Checkpoint secimi artik Dice uzerinden (busi/dice_tum), segm_mAP uzerinden degil
+$ckpt = Get-ChildItem $work -Filter 'best_busi_dice*.pth' -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime | Select-Object -Last 1
 if (-not $ckpt) {
-    Write-Host "UYARI: best_coco_segm* bulunamadi, son epoch checkpointi kullanilacak"
+    Write-Host "UYARI: best_busi_dice* bulunamadi, son epoch checkpointi kullanilacak"
     $ckpt = Get-ChildItem $work -Filter '*.pth' | Sort-Object LastWriteTime | Select-Object -Last 1
 }
 Write-Host ("=" * 60)
@@ -56,4 +58,4 @@ Write-Host "degerlendirilen checkpoint: $($ckpt.Name)"
 & $PY -u "$KOK\dice_degerlendirme.py" `
     --checkpoint $ckpt.FullName `
     --split val `
-    --cikti "$work\dice_val_${girdi}_${aug}.xlsx"
+    --cikti "$work\dice_val_${girdi}_${aug}_s${tohum}.xlsx"

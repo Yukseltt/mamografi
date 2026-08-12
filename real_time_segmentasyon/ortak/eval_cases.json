@@ -1,0 +1,95 @@
+{
+  "split": "val",
+  "tohum": 42,
+  "n": 11,
+  "vakalar": [
+    {
+      "case_id": "normal/normal (10)",
+      "cls": "normal",
+      "kova": "bos",
+      "eq_diam": 0.0,
+      "lesion_px": 0,
+      "n_components": 0
+    },
+    {
+      "case_id": "normal/normal (77)",
+      "cls": "normal",
+      "kova": "bos",
+      "eq_diam": 0.0,
+      "lesion_px": 0,
+      "n_components": 0
+    },
+    {
+      "case_id": "normal/normal (87)",
+      "cls": "normal",
+      "kova": "bos",
+      "eq_diam": 0.0,
+      "lesion_px": 0,
+      "n_components": 0
+    },
+    {
+      "case_id": "benign/benign (54)",
+      "cls": "benign",
+      "kova": "buyuk",
+      "eq_diam": 162.5,
+      "lesion_px": 20750,
+      "n_components": 3
+    },
+    {
+      "case_id": "malignant/malignant (83)",
+      "cls": "malignant",
+      "kova": "buyuk",
+      "eq_diam": 163.5,
+      "lesion_px": 20991,
+      "n_components": 1
+    },
+    {
+      "case_id": "benign/benign (236)",
+      "cls": "benign",
+      "kova": "cok_buyuk",
+      "eq_diam": 320.2,
+      "lesion_px": 80548,
+      "n_components": 1
+    },
+    {
+      "case_id": "malignant/malignant (160)",
+      "cls": "malignant",
+      "kova": "cok_buyuk",
+      "eq_diam": 312.2,
+      "lesion_px": 76548,
+      "n_components": 1
+    },
+    {
+      "case_id": "benign/benign (70)",
+      "cls": "benign",
+      "kova": "kucuk",
+      "eq_diam": 66.7,
+      "lesion_px": 3495,
+      "n_components": 1
+    },
+    {
+      "case_id": "malignant/malignant (148)",
+      "cls": "malignant",
+      "kova": "kucuk",
+      "eq_diam": 60.3,
+      "lesion_px": 2856,
+      "n_components": 1
+    },
+    {
+      "case_id": "benign/benign (66)",
+      "cls": "benign",
+      "kova": "orta",
+      "eq_diam": 102.9,
+      "lesion_px": 8318,
+      "n_components": 1
+    },
+    {
+      "case_id": "malignant/malignant (74)",
+      "cls": "malignant",
+      "kova": "orta",
+      "eq_diam": 119.8,
+      "lesion_px": 11269,
+      "n_components": 1
+    }
+  ]
+}

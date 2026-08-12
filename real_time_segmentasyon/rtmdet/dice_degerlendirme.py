@@ -1,17 +1,20 @@
 """Orijinal cozunurlukte Dice degerlendirmesi - uc modelde ortak metrik.
 
 Neden ayri bir modul:
-  1. mmdet'in segm_mAP'i bu kurulumda kullanilamiyor. `Resize(keep_ratio=False)`
-     ile x/y olcek katsayilari farkli, RTMDet-Ins'in maske geri-olceklemesi tek
-     katsayi uygulayip kare maske uretiyor (ori_shape (473,323) -> maske (323,323)).
-     Maske goruntuyle hizalanmadigi icin IoU sifir cikiyor.
-  2. Uc mimariyi (SegFormer / YOLO / RTMDet) ayni metrikle karsilastirmak icin
-     ortak bir tanima ihtiyacimiz var. PLAN.md karari: degerlendirme **orijinal
-     cozunurlukte**, orijinal ikili maskeye karsi.
+  1. Uc mimariyi (SegFormer / YOLO / RTMDet) ayni metrikle karsilastirmak icin
+     ortak bir tanima ihtiyacimiz var; SegFormer semantic segmentation yaptigi
+     icin segm_mAP onun icin tanimli bile degil. PLAN.md karari: degerlendirme
+     **orijinal cozunurlukte**, orijinal ikili maskeye karsi.
+  2. segm_mAP bu kurulumda kirilgan oldugunu gosterdi: RTMDet-Ins maskeyi
+     ori_shape'ten 1 px kisa uretebiliyor ve COCOeval o goruntuyu sifir sayiyor
+     (bkz. ozel_transformlar.CocoMetricHizali). Ayni hata daha once
+     `keep_ratio=False` doneminde kare maske olarak cok daha buyuk olcekte
+     yasanmisti. Bu modul maskeyi her durumda orijinal boyuta getirdigi icin
+     ikisinden de etkilenmiyor.
 
-Kare maske duzeltmesi: model 256x256 uzayinda maske uretiyor, mmdet bunu tek
-katsayiyla buyutuyor -- yani cikan kare maske model uzayinin duzgun bir
-olceklemesi. Dogrudan (ori_w, ori_h)'ye resize etmek dogru esleme veriyor.
+Maske boyutu duzeltmesi: model kendi girdi uzayinda maske uretip buyutuyor,
+cikan maske ori_shape'ten farkli olabiliyor. Dogrudan (ori_w, ori_h)'ye nearest
+resize etmek dogru esleme veriyor.
 
 Bos maskeli goruntuler (131 `normal` vaka): GT bos ve tahmin de bossa Dice 1
 sayilir (0/0 tanimsiz). Rapor bu vakalari ayri kirilimda verir -- tek bir
@@ -30,17 +33,19 @@ sys.path.insert(0, str(BURASI))
 import torch_uyum        # noqa: F401  torch 2.6 checkpoint uyumu
 import ozel_transformlar  # noqa: F401  transform kaydi
 
+sys.path.insert(0, str(BURASI.parent / 'ortak'))
+import degerlendirme as ortak_dg   # esik izgarasi ve secim olcutu tek yerden
+
+ESIKLER = ortak_dg.ESIKLER
+ORTAK_OLCUT = 'dice_tum'
+
 KOK = BURASI.parent
 DATA_ROOT = KOK / 'Dataset_BUSI_with_GT'
 MANIFEST = KOK / 'veri' / 'veri_manifest.csv'
 COLAB_ROOT = '/content/drive/MyDrive/real_time_segmentasyon/Dataset_BUSI_with_GT'
 
 
-def read_gray(p):
-    im = cv2.imread(str(p), cv2.IMREAD_UNCHANGED)
-    if im is None:
-        raise FileNotFoundError(p)
-    return cv2.cvtColor(im[:, :, :3], cv2.COLOR_BGR2GRAY) if im.ndim == 3 else im
+read_gray = ortak_dg.gri_oku   # tek tanim; kanal duzeni varsayimi orada ele aliniyor
 
 
 def yerel_yol(p):
@@ -92,8 +97,7 @@ def tahmin_maskesi(pred, ori_shape, esik):
     return out
 
 
-def degerlendir(config, checkpoint, split='val', esikler=(0.05, 0.1, 0.2, 0.3, 0.4, 0.5),
-                cihaz='cuda:0'):
+def degerlendir(config, checkpoint, split='val', esikler=ESIKLER, cihaz='cuda:0'):
     from mmdet.apis import init_detector, inference_detector
 
     df = pd.read_csv(MANIFEST)
@@ -136,15 +140,30 @@ def main():
     ap.add_argument('--config', default=str(BURASI / 'rtmdet_ins_busi.py'))
     ap.add_argument('--checkpoint', required=True)
     ap.add_argument('--split', default='val', choices=['val', 'test'])
+    ap.add_argument('--esik', type=float, default=None,
+                    help='verilirse yalnizca bu esikte olculur. Test icin sart: '
+                         'esik val`de secilir, test`e sabit uygulanir')
     ap.add_argument('--cikti', default=None)
     args = ap.parse_args()
 
-    tablo = degerlendir(args.config, args.checkpoint, args.split)
+    if args.split == 'test' and args.esik is None:
+        raise SystemExit(
+            'test icin --esik zorunlu. Esik val`de secilmeli ve test`e sabit\n'
+            'uygulanmali; test uzerinde tarama yapip en iyisini raporlamak\n'
+            'sizintidir (PLAN.md degerlendirme protokolu).')
+
+    esikler = (args.esik,) if args.esik else ortak_dg.ESIKLER
+    tablo = degerlendir(args.config, args.checkpoint, args.split, esikler)
     print(f'\n=== {args.split} | orijinal cozunurlukte Dice ===', flush=True)
     print(tablo.to_string(index=False), flush=True)
 
-    en_iyi = tablo.loc[tablo['dice_lezyonlu'].idxmax()]
-    print(f"\nEn iyi esik: {en_iyi['esik']} -> lezyonlu Dice {en_iyi['dice_lezyonlu']}", flush=True)
+    if args.esik is None:
+        # Esik olcutu uc modelde ortak olmali; tanim ortak/degerlendirme.py'de
+        esik = ortak_dg.en_iyi_esik(tablo)
+        satir = tablo.loc[tablo['esik'] == esik].iloc[0]
+        print(f"\nEn iyi esik ({ORTAK_OLCUT}): {esik} -> "
+              f"lezyonlu Dice {satir['dice_lezyonlu']}, tum {satir['dice_tum']}, "
+              f"bos dogru {satir['bos_dogru']}/{satir['bos_toplam']}", flush=True)
 
     if args.cikti:
         tablo.to_excel(args.cikti, index=False)

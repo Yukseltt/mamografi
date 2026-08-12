@@ -18,6 +18,7 @@ egitim/islenmis/
 
 # Claude Code yerel ayarlar
 .claude/settings.local.json
+.claude/
 
 # Editor / OS
 .vscode/
@@ -26,3 +27,11 @@ egitim/islenmis/
 Thumbs.db
 
 real_time_segmentasyon/Dataset_BUSI_with_GT/
+
+real_time_segmentasyon/veri
+# Colab yukleme paketi (uretilen)
+colab_yukle.zip
+
+# Model agirliklari ve ONNX ciktilari (Drive'da / yeniden uretilebilir)
+real_time_segmentasyon/*.pt
+real_time_segmentasyon/onnx/

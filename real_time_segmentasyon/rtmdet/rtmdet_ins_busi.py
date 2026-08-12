@@ -12,19 +12,27 @@ _base_ = 'mmdet::rtmdet/rtmdet-ins_tiny_8xb32-300e_coco.py'
 # ---- deney basina degisen ----
 # 256: diger iki modelle esit girdi butcesi, maske izgarasi 32x32, tavan 0.9814
 # 512: esit maske tavani (izgara 64x64, tavan 0.9922) -- bkz. PLAN.md
-GIRDI = 512
+GIRDI = 256
 BATCH = 8                   # 256'da tepe VRAM 606 MB; 512'de ~2.4 GB bekleniyor.
                             # OOM olursa 4'e dusur (lr otomatik olceklenir).
-MAX_EPOCH = 100             # 256 kosusu epoch 40'ta zirve yapti; butce esit
-                            # kalsin diye 100'de birakildi, erken durdurma yok.
+MAX_EPOCH = 100             # 70 denendi ve geri alindi. "100 epoch'luk kosunun ilk
+                            # N epoch'u" analizi butce secmek icin gecerli degil:
+                            # MAX_EPOCH'u kisaltmak takvimi kirpmiyor, cosine'i
+                            # yeniden olcekliyor. 70'te zirve ep28'e dusup segm_mAP
+                            # 0.642 -> 0.621 oldu. Kirilim kaybin maske kalitesinden
+                            # degil skor kalibrasyonundan geldigini gosterdi:
+                            # oracle instance Dice 70'lik kosuda daha iyiydi (0.892
+                            # vs 0.885), ama tespitlerin guveni dusuk kaldigi icin
+                            # esik 0.4'te Dice 0.771'e iniyordu (100'lukte 0.808).
 AUG_SEVIYE = 'orta'         # 'hafif' | 'orta'
+TOHUM = 44                  # Faz 2: 42 / 43 / 44 ile uc kosu
 
 KOK = 'd:/mamografi/real_time_segmentasyon'
 data_root = f'{KOK}/Dataset_BUSI_with_GT/'
 ANN = f'{KOK}/veri/coco'
 
 metainfo = dict(classes=('lezyon',), palette=[(220, 20, 60)])
-work_dir = f'{KOK}/rtmdet/calisma/rtmdet_ins_tiny_{GIRDI}_{AUG_SEVIYE}'
+work_dir = f'{KOK}/rtmdet/calisma/rtmdet_ins_tiny_{GIRDI}_{AUG_SEVIYE}_s{TOHUM}'
 
 # COCO on-egitimli agirliktan fine-tune
 load_from = ('https://download.openmmlab.com/mmdetection/v3.0/rtmdet/'
@@ -57,7 +65,8 @@ ALBU = {
 
 # Albu yerine AlbuBosGuvenli: mmdet'in Albu'su bos anotasyonlu orneklerde cokuyor
 # (transforms.py:1770), BUSI'de bunlar 92 negatif ornek. bkz. ozel_transformlar.py
-custom_imports = dict(imports=['ozel_transformlar'], allow_failed_imports=False)
+custom_imports = dict(imports=['ozel_transformlar', 'ozel_metrikler'],
+                      allow_failed_imports=False)
 
 albu_sarmalayici = dict(
     type='AlbuBosGuvenli',
@@ -78,6 +87,12 @@ albu_sarmalayici = dict(
 # gercek maskeler 0.49'da kaliyordu -- yani kayip tamamen tasima hatasindandi.
 # Tek olcek katsayisi ile bu ortadan kalkiyor. YOLOv11-Seg de letterbox kullandigi
 # icin modeller arasi tutarlilik da artiyor.
+#
+# Maske olceklemesi bilerek mmdet'in varsayilani (cv2.INTER_NEAREST) ile birakildi.
+# INTER_NEAREST maskeyi kucultturken +0.5 px kaydiriyor ve bunu "duzeltmek" icin
+# nearest_exact kullanan bir Resize denendi -- OLCUM REDDETTI. mmdet'in cikarim
+# tarafindaki geri-olcekleme ters yonde ~-2 px kayma tasiyor; nearest'in bias'i
+# onu telafi ediyormus. Ayrintili sayilar PLAN.md hata 9'da.
 train_pipeline = [
     dict(type='LoadImageFromFile', backend_args=None),
     dict(type='LoadAnnotations', with_bbox=True, with_mask=True, poly2mask=True),
@@ -141,17 +156,50 @@ test_dataloader = dict(
     ),
 )
 
-val_evaluator = dict(
-    type='CocoMetric',
-    ann_file=f'{ANN}/busi_val.json',
-    metric=['bbox', 'segm'],
-    format_only=False,
-)
+# CocoMetric yerine CocoMetricHizali: RTMDet-Ins maskeyi ori_shape'ten 1 px kisa
+# uretebiliyor, COCOeval boyut uyusmayinca o goruntuyu sifir sayiyor. 256'da val
+# goruntulerinin %21.6'si, 512'de %1.7'si etkileniyordu -- iki kosunun segm_mAP
+# farkinin tamami buydu. bkz. ozel_transformlar.py
+# Dice metrigi ikinci sirada: checkpoint secimi artik `busi/dice_tum` uzerinden,
+# yani raporlanan metrigin kendisiyle. Onceki kosularda secim `segm_mAP`
+# uzerindendi ve o metrik bozuk cikinca yanlis epoch secilmisti (hata 8).
+val_evaluator = [
+    dict(type='CocoMetricHizali', ann_file=f'{ANN}/busi_val.json',
+         metric=['bbox', 'segm'], format_only=False),
+    dict(type='BusiDiceMetric', manifest=f'{KOK}/veri/veri_manifest.csv'),
+]
 test_evaluator = dict(
-    type='CocoMetric',
+    type='CocoMetricHizali',
     ann_file=f'{ANN}/busi_test.json',
     metric=['bbox', 'segm'],
     format_only=False,
+)
+
+# Val loss icin ayri hat: anotasyonlar Resize'dan ONCE yukleniyor ki hedefler
+# model girdisiyle ayni uzayda olsun. Augmentasyon yok -- olcum deterministik olmali.
+val_loss_pipeline = [
+    dict(type='LoadImageFromFile', backend_args=None),
+    dict(type='LoadAnnotations', with_bbox=True, with_mask=True, poly2mask=True),
+    dict(type='Resize', scale=(GIRDI, GIRDI), keep_ratio=True),
+    dict(type='Pad', size=(GIRDI, GIRDI), pad_val=dict(img=(114, 114, 114), masks=0)),
+    dict(type='PackDetInputs'),
+]
+
+val_loss_dataloader = dict(
+    batch_size=BATCH,
+    num_workers=0,
+    persistent_workers=False,
+    drop_last=False,
+    sampler=dict(type='DefaultSampler', shuffle=False),
+    dataset=dict(
+        type='CocoDataset',
+        data_root=data_root,
+        metainfo=metainfo,
+        ann_file=f'{ANN}/busi_val.json',
+        data_prefix=dict(img=''),
+        filter_cfg=dict(filter_empty_gt=False, min_size=0),
+        pipeline=val_loss_pipeline,
+    ),
 )
 
 # ---- egitim takvimi ----
@@ -179,7 +227,7 @@ param_scheduler = [
 
 default_hooks = dict(
     checkpoint=dict(type='CheckpointHook', interval=1, max_keep_ckpts=1,
-                    save_best='coco/segm_mAP', rule='greater'),
+                    save_best='busi/dice_tum', rule='greater'),
     logger=dict(type='LoggerHook', interval=10),
 )
 
@@ -187,6 +235,7 @@ default_hooks = dict(
 custom_hooks = [
     dict(type='EMAHook', ema_type='ExpMomentumEMA', momentum=0.0002,
          update_buffers=True, priority=49),
+    dict(type='ValLossHook', dataloader=val_loss_dataloader),
 ]
 
-randomness = dict(seed=42, deterministic=False)
+randomness = dict(seed=TOHUM, deterministic=False)
