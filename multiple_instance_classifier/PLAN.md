@@ -451,11 +451,15 @@ Sonuçlar:
   şişiriyordu. `hazir/`'ı bir kez `/content/hazir`'a kopyalamak (33 dk) epoch'u 2,8 dk'ya indirdi.
   Bu makaleden sapma değil, yalnızca I/O. `/content` geçici: her yeni VM'de kopya yenilenir.
 - **T4 yeterli, A100 gereksiz** — bellek kullanımı %10, GPU beklemede.
-- **Batch 4 kalıyor.** Bellek gerekçesi ortadan kalktı ama batch, hiperparametre aramasının
-  içinde sabit tutulmalı: aramanın yarısını batch 4, yarısını batch 16 ile koşmak aday
-  karşılaştırmasını bozar (ayrıca ResNet-22'nin BatchNorm istatistikleri batch boyutuna bağlı,
-  gradient accumulation bunu birleştirmiyor). Seçilen `lr` batch 4 altında bulunduğu için
-  **Parça 8 de batch 4 ile koşmak zorunda.**
+- **Batch tutarlılığı — açık nokta.** Batch, aramanın içinde ve arama ile Parça 8 arasında
+  sabit tutulmalı: efektif batch aynı kalsa bile `BATCH` değişince ResNet-22'nin **BatchNorm
+  istatistikleri** değişir (gradient accumulation BN'i birleştirmiyor) ve seçilen `lr` bu
+  koşullar altında bulunmuştur.
+  Kalibrasyon çıktısı `batch 4, efektif 16` diyor (654 = 2618/4); ancak notebook'ta şu an
+  `BATCH = 16, GRAD_ACCUM = 1` yazıyor. Aramanın hangisiyle koştuğu **doğrulanmalı** —
+  Parça 8 aynı değerle koşmak zorunda.
+  Bu belirsizlik bir daha doğmasın diye `BATCH`/`GRAD_ACCUM` artık checkpoint'e ve
+  `<key>_test_summary.xlsx`'e (`batch`, `grad_accum`, `efektif_batch` kolonları) yazılıyor.
 - Bütçe: arama 8,5 saat, tam eğitimler 13,3 saat (early stopping ile daha az), toplam ~21,8 saat.
 
 ### Hiperparametre araması
@@ -670,7 +674,7 @@ geçilmez. Sıradaki parça açılırken bu tablo güncellenir (durum kolonu).
 | **6** | Eğitim döngüsü + smoke test | Metrikler (meme seviyesi AUC, `attn_entropi`, `sm_ort_aktivasyon`, `sm_meme_ici_oran`), AMP + clipping, early stopping; 2 epoch × küçük alt küme | çalışan `gmic_cmmd_egitim.ipynb` | **TAMAM** — yerelde CPU'da (576×320) ve Colab GPU'da **tam çözünürlükte (2304×1280)** baştan sona geçti: 22/22 log kolonu dolu, checkpoint + grafik + resume doğrulandı, OOM yok |
 | **6b** | Drive bütünlük kontrolü | `butunluk.py` ile Colab'daki `hazir/` klasörünün yerel referansa karşı doğrulanması | `hazir/butunluk.json` + geçen kontrol | **TAMAM** — 3.739 dosyanın tamamı yereldekiyle bit bazında aynı (md5), 3.734 PNG'nin hepsi açıldı ve manifestteki şekil/tipe uydu, split ve etiket tutarlılığı geçti |
 | **7** | Hiperparametre araması | 12 koşu × 15 epoch, `η/λ/β/t` log-uniform; seçim ölçütü val malign AUC | seçilen konfigürasyon + en iyi 3 | **TAMAM** — 12/12 koşu başarılı (7,7 saat), en iyi koşu 05 val malign AUC 0,8133, `HP` hücre 3'e işlendi, top-3 = 05/04/10 |
-| **8** | Tam eğitimler | **7 koşu** (3, 4, 7 numaralılar türetilir), 40 epoch, patience 10 | 7 × log / curves / summary / cases | bekliyor |
+| **8** | Tam eğitimler | **9 koşu** (7 ablasyon + ensemble için aramanın 2. ve 3. konfigürasyonu), 40 epoch, patience 10 | 9 × log / curves / test_summary / test_tahminler + `karsilastirma_ozeti.xlsx` | **kod hazır, koşu kullanıcıda** — `deney_ayarla` (deney başına global kurulum, `gmic_lowres` için λ×4), `ek_augmentasyon`, `test_degerlendir` (meme seviyesi test + D1/D2 kırılımı), resume + atlama; yerelde 3 deney × 1 epoch ile uçtan uca test edildi |
 | **9** | Değerlendirme | Bootstrap AUC CI, DeLong testleri, alt grup kırılımı (`abnormality`, `Age`), ensemble | `comparison_table.xlsx` | bekliyor |
 | **10** | Rapor | `rapor/figurleri_uret.py` + `build_report.py`, base64 gömülü tek HTML → Chrome ile PDF | `rapor/gmic_cmmd_raporu.pdf` | bekliyor |
 
