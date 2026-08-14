@@ -1,0 +1,66 @@
+{
+  "hastalar": [
+    "D1-0202",
+    "D1-0808",
+    "D1-1292",
+    "D2-0284"
+  ],
+  "gerekce": "TCIA uyarisi dogrulandi: farkli hasta ID lerinde ayni piksel verisi ve celisen etiket. Hangisinin dogru oldugu bilinemedigi icin tumu cikarildi.",
+  "detay": [
+    {
+      "hash": "a3dbf56af8ca",
+      "hastalar": [
+        "D1-0202",
+        "D2-0284"
+      ],
+      "goruntu": 2,
+      "taraf_view": [
+        "R-MLO"
+      ]
+    },
+    {
+      "hash": "ab008b5b4136",
+      "hastalar": [
+        "D1-0808",
+        "D1-1292"
+      ],
+      "goruntu": 2,
+      "taraf_view": [
+        "R-CC"
+      ]
+    },
+    {
+      "hash": "c6d4ff507285",
+      "hastalar": [
+        "D1-0202",
+        "D2-0284"
+      ],
+      "goruntu": 2,
+      "taraf_view": [
+        "L-MLO"
+      ]
+    },
+    {
+      "hash": "e889ad2a8e29",
+      "hastalar": [
+        "D1-0202",
+        "D2-0284"
+      ],
+      "goruntu": 2,
+      "taraf_view": [
+        "R-CC"
+      ]
+    },
+    {
+      "hash": "e91076566b0e",
+      "hastalar": [
+        "D1-0202",
+        "D2-0284"
+      ],
+      "goruntu": 2,
+      "taraf_view": [
+        "L-CC"
+      ]
+    }
+  ]
+}

@@ -35,3 +35,23 @@ colab_yukle.zip
 # Model agirliklari ve ONNX ciktilari (Drive'da / yeniden uretilebilir)
 real_time_segmentasyon/*.pt
 real_time_segmentasyon/onnx/
+
+# GMIC/CMMD ham veri (Kaggle/TCIA'dan indirilir, Drive'da da var)
+multiple_instance_classifier/archive/
+
+# GMIC/CMMD hazirlanmis onbellek (~2.8 GB, Parca 2 yeniden uretir, Drive'da kalici)
+# butunluk.json haric: Drive kopyasini dogrulamak icin gereken referans, 250 KB
+multiple_instance_classifier/hazir/*
+!multiple_instance_classifier/hazir/butunluk.json
+multiple_instance_classifier/hazir_smoke/
+multiple_instance_classifier/hazir_duman/
+
+# Test artefaktlari (smoke test checkpointleri, altyapi testi) -- yeniden uretilir
+multiple_instance_classifier/_smoke/
+multiple_instance_classifier/_altyapi_testi/
+
+# Egitim ciktilari: Drive kalici depo, yerel ayna gecici
+multiple_instance_classifier/outputs/
+multiple_instance_classifier/arama/
+multiple_instance_classifier/gmic*/
+!multiple_instance_classifier/gmic_cmmd_*.ipynb
