@@ -36,8 +36,8 @@ li { margin-bottom: 3pt; }
               page-break-inside: avoid; }
 </style></head><body>
 
-<h1>Hiperparametre Optimizasyonu — Deney Raporu</h1>
-<p class="sub">U-Net + ResNet34 · Meme yoğunluğu segmentasyonu</p>
+<h1>Hiperparametre Optimizasyonu</h1>
+<p class="sub">U-Net + ResNet34 Meme yoğunluğu segmentasyonu</p>
 
 <h2>1. Amaç ve Kapsam</h2>
 <p>Ana çalışmada altı model karşılaştırılmış, en yüksek Dice'ı U-Net + ResNet34 vermiştir (0,8059).
@@ -236,15 +236,7 @@ bir bozulma kaynağı değil, düzenleyici (regularizer) işlevi görmektedir.</
 ortadan kaldırmıştır. Buna karşılık toplam Dice 0,0102 düşmüştür. Sınır doğruluğunun toplam
 örtüşmeden öncelikli olduğu bir kullanımda bu ayar tercih edilebilir.</p>
 
-<div class="callout warn">
-<p><strong>Açıklanamayan sonuç.</strong> Tversky kaybında α=0,7 seçilerek yanlış pozitifin daha ağır
-cezalandırılması ve precision'ın yükselmesi hedeflenmişti. Gerçekleşen bunun tersidir: precision
-0,8153'ten 0,7917'ye düşmüş, recall 0,8392'den 0,8465'e yükselmiştir. Loss fonksiyonunun TP/FP/FN
-tanımları doğrulanmıştır. Olası açıklama, bu deneyin en erken sonlanan koşu olmasıdır (en iyi epoch
-28, erken durdurma epoch 43); asimetrik loss doğrulama kaybı eğrisini değiştirerek durdurma ölçütünü
-erken tetiklemiş olabilir. Sonuç, loss fonksiyonunun kalitesinden çok erken sonlanmayla karışmış
-durumdadır ve bu çalışmada ayrıştırılamamıştır.</p>
-</div>
+
 
 <h2>7. Sınırlamalar</h2>
 <p>Ayrı bir test seti bulunmadığından, doğrulama setinde yürütülen her hiperparametre araması
@@ -263,7 +255,7 @@ ne kadarının eğitim rastgeleliğinden geldiği ölçülememiştir.</li>
 düşük encoder öğrenme oranı, daha uzun epoch bütçesiyle birlikte farklı sonuç verebilirdi.</li>
 <li>Sonuçlar yalnızca U-Net + ResNet34 için geçerlidir. Bir ayarın gerçekten etkili olduğunun
 doğrulanması için kazanan konfigürasyonun ikinci bir model üzerinde (U-Net++ + ResNet34)
-tekrarlanması gerekir (bkz. 2.2); kazanan çıkmadığından bu adım uygulanmamıştır.</li>
+tekrarlanması gerekir kazanan çıkmadığından bu adım uygulanmamıştır.</li>
 <li>Eşik taramasında yalnızca tek bir global eşik denenmiş, vaka bazında uyarlanan eşik stratejileri
 sınanmamıştır.</li>
 </ul>
