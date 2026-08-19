@@ -1,0 +1,844 @@
+Globally-Aware Multiple Instance Classifier Yönteminin CMMD2022 Veri Setinde
+Yeniden Üretilmesi
+
+Shen ve ark. (MLMI 2019) . 18.08.2026
+
+Çalışmanın ana bulgusu, makalenin merkezi iddiasının bu veri setinde de geçerli olmasıdır:
+GMIC, aynı backbone'u kullanan ResNet-22 baseline'ını 0,083 AUC farkıyla aşmaktadır
+(p = 0,024). Makalede bildirilen fark 0,073 olup, veri setinin yaklaşık 120 kat küçük
+olmasına rağmen aynı büyüklükte bir kazanç elde edilmiştir. Hiperparametre aramasından çıkan
+ilk üç konfigürasyonun ensemble'ı 0,791 ile en yüksek sonucu vermekte ve tek başına
+tam modeli de anlamlı olarak aşmaktadır (p = 0,029). Buna karşılık ablasyon
+varyantlarının hiçbiri tam modelden istatistiksel olarak ayırt edilememektedir; Bölüm 5.4'te
+gösterildiği üzere bu, ablasyonların etkisiz olduğu anlamına gelmez, mevcut örneklem
+büyüklüğünün bu büyüklükteki farkları ölçmeye yetmediği anlamına gelir.
+
+1. Amaç ve Kapsam
+
+Shen ve ark., yüksek çözünürlüklü mamografi görüntülerinde tüm görüntüyü işleyen bir global
+ağı, saliency map'ten seçilen patch'ler üzerinde çalışan bir MIL modülü ile birleştiren GMIC
+mimarisini önermiştir. Bu çalışmanın amacı, söz konusu yöntemi CMMD2022 veri setinde mümkün
+olduğunca birebir uygulamak ve makalede bildirilen ablasyon sıralamasının bu ölçekte korunup
+korunmadığını ölçmektir.
+
+Hedef, makaledeki mutlak AUC seviyesine ulaşmak değildir. Makale 229.426 tetkik üzerinde
+çalışırken burada 1.771 hasta bulunmaktadır; iki çalışmanın mutlak değerleri doğrudan
+karşılaştırılabilir nitelikte değildir. Değerlendirme, yöntemin bileşenleri arasındaki göreli
+sıralama üzerinden yapılmıştır.
+
+2. Veri
+
+CMMD2022 veri seti (TCIA arşivi, Kaggle dağıtımı tommyngx/cmmd2022) 5.202 DICOM görüntü ve
+1.775 hasta içermektedir. Eğitime hazır hale getirilirken üç eleme uygulanmıştır.
+
+Birincisi, iki memesi de görüntülenmiş ancak yalnızca biri için biyopsi sonucu bulunan
+hastalarda etiketsiz kontralateral memeler (729 meme) veri dışında bırakılmıştır. Patolojik
+doğrulama olmadan bu memelerin negatif kabul edilmesi, etiket gürültüsü yaratacaktır.
+
+İkincisi, arşivin uyardığı yinelenen görüntüler md5 karşılaştırmasıyla doğrulanmıştır.
+D1-0808 ve D1-1292 kayıtları aynı sağ CC görüntüsünü birbirine zıt sınıflarla paylaşmaktadır;
+benzer çakışmaların tespit edildiği toplam dört hasta veri dışı bırakılmıştır.
+
+Üçüncüsü, bölme hasta seviyesinde yapılmış, aynı hastanın tüm görüntüleri tek bir kümede
+tutulmuştur. Kalan veri 1.867 meme ve 3.734 görüntüdür; eğitim, doğrulama ve test kümelerine
+%70/15/15 oranında ayrılmıştır.
+
+Görüntüler 8 bit derinlikte ve ön-pencerelenmiş olarak saklanmaktadır (WindowCenter 128,
+Width 256, VOI LUT SIGMOID). Bu ayrıntı sonuçların yorumlanmasında önem taşımaktadır: makalenin
+korumayı hedeflediği geniş dinamik aralık bu veri setinde baştan mevcut değildir.
+
+Şekil 1. Sınıf, alt küme (D1/D2) ve yaş dağılımları.
+
+Veri setinde belirgin bir confounder yapısı bulunmaktadır. Yalnızca yaş kullanıldığında
+0,682; yalnızca D1/D2 alt küme göstergesi kullanıldığında 0,776; ikisi birlikte kullanıldığında
+0,847 AUC elde edilmektedir. Bu nedenle birincil değerlendirme kohortu olarak D1 seçilmiştir
+(n = 165, 85 malign). D2 test kohortunda 115 memenin 113 tanesi
+malign olduğundan, bu alt kümede AUC pratik olarak tanımsızdır.
+
+3. Yöntem
+
+3.1 Mimari
+
+Mimari makaledeki tanıma bağlıdır. Lokalizasyon modülü f_d olarak ResNet-22 kullanılmakta,
+çıktısı 1 1 konvolüsyon ve sigmoid ile sınıf başına bir saliency map'e
+dönüştürülmektedir. Tespit modülü, makaledeki Algoritma 1 uyarınca bu harita üzerinden
+örtüşmeyen K = 6 adet ROI seçmektedir. MIL modülü, seçilen patch'leri ImageNet pretrained
+ResNet-18 (f_t) ile kodlamakta ve Ilse ve ark. (2018) tarafından önerilen gated attention
+mekanizmasıyla birleştirmektedir.
+
+Loss fonksiyonu, her iki dalın çıktısı için ayrı BCE terimleri ve saliency map üzerinde bir
+regularization teriminden oluşmaktadır:
+L = &Sigma;c [ BCE(yc, &#375;loc,c) +
+BCE(yc, &#375;mil,c) ] +   Lreg.
+Çıkarımda iki dalın ortalaması alınmaktadır.
+
+Tespit modülü türevlenebilir olmadığından MIL loss'unun gradyanı f_d'ye ulaşmamakta, iki dal
+yalnızca ortak pooling fonksiyonu üzerinden bağlanmaktadır. Bu davranış uygulamada ayrı bir
+testle doğrulanmıştır.
+
+3.2 ROI seçimi (Algoritma 1)
+
+Tespit modülü, saliency map üzerinden birbiriyle önemli ölçüde örtüşmeyen K adet bölge
+seçmektedir. Makaledeki algoritma açgözlü çalışmaktadır: harita önce sınıf başına min-max
+normalize edilir ve sınıflar toplanır; ardından K kez, patch boyutuna karşılık gelen pencere
+içinde toplamı en yüksek konum seçilir ve seçilen bölge haritadan silinerek bir sonraki seçimin
+aynı yere düşmesi engellenir. Seçilen konumlar saliency map ölçeğinden girdi ölçeğine taşınır ve
+patch'ler orijinal çözünürlükten kesilir; böylece MIL modülü aşağı örneklenmemiş piksellerle
+çalışır.
+
+Uygulamada tek sapma silme değerindedir. Makale ve yayınlanan kod seçilen bölgeyi sıfırlar.
+Min-max normalizasyon sonrası arka plan zaten tam sıfır olduğundan, tepeler sıfırlandığında
+harita her yerde sıfıra eşitlenmekte ve argmax sürekli aynı konumu (0,0) döndürmektedir; bu
+durumda aynı patch K kez MIL modülüne girmektedir. Silme değeri −1 olarak değiştirilmiştir.
+Harita pozitif değerler içerdiği sürece davranış sıfır ile aynı, dejenere durumda ise doğrudur.
+Bu davranış, düz bir saliency map ile ayrıca test edilmiştir.
+
+3.3 Ön işleme
+
+Makale ön işleme adımlarını Wu ve ark. (2019) çalışmasına atıfla geçmekte ve augmentation
+listesi vermemektedir. Bu nedenle adımlar yazarların yayınladığı uygulamadan alınmıştır: meme
+dokusunun çevresindeki arka plan crop edilmekte, sağ memeler yatay çevrilerek tüm görüntüler
+aynı yöne bakacak şekilde normalize edilmekte ve görüntü başına z-score uygulanmaktadır. Girdi
+çözünürlüğü 2304 1280, patch boyutu
+256 256 olarak korunmuştur.
+
+Şekil 2. Crop, yön normalizasyonu ve z-score sonrası örnek görüntüler.
+
+3.4 Augmentation
+
+Makale augmentation listesi vermemekte, yayınlanan uygulamada ise tek bir augmentation
+bulunmaktadır: crop penceresinin merkezine ve boyutuna eklenen rastgele gürültü. Bu tercih
+mamografiye özgüdür. Yatay çevirme kullanılamaz, çünkü ön işleme adımında tüm görüntüler aynı
+yöne bakacak şekilde normalize edilmiştir; çevirme bu bilgiyi yok eder. Döndürme ve ölçek
+dönüşümleri de rutin olarak uygulanmaz, zira meme pozisyonu çekim protokolü tarafından
+standartlaştırılmıştır.
+
+Bu çalışmada aynı tercih korunmuştur: eğitimde pencere merkezi en fazla 100 piksel kaydırılır
+ve pencere boyutu en fazla 100 piksel değiştirilerek hedef boyuta yeniden ölçeklenir; doğrulama
+ve test kümelerinde gürültü uygulanmaz. Boyut gürültüsünün tam semantiği yayınlanan koddan
+çıkarılamadığı için yaklaşık %4 büyüklüğünde bir zoom değişimi olarak uygulanmıştır.
+
+Şekil 3. Aynı görüntünün gürültüsüz hali (doğrulama/test) ve eğitimde üretilen üç farklı crop penceresi.
+
+Veri ölçeğinin makaledekinden yaklaşık 120 kat küçük olması, bu minimal augmentation
+tercihinin bu ölçekte de doğru olup olmadığı sorusunu doğurmaktadır. Soru açık bırakılmamış, ek
+bir ablasyon olarak ölçülmüştür (Bölüm 5.1, gmic_augment): mamografiye uygun daha geniş bir
+augmentation seti eklendiğinde sonuç değişmemiştir.
+
+3.5 Hiperparametre araması
+
+Makale dört parametre üzerinde logaritmik ölçekte rastgele arama yapmakta ve 100 model
+eğitmektedir. Mevcut hesaplama bütçesi bunu karşılamadığından, aynı aralıklarda 12 koşu ve koşu
+başına 15 epoch ile daraltılmış bir arama yürütülmüştür. Seçim ölçütü makaledekiyle aynı
+tutulmuş, doğrulama kümesi malign AUC değeri kullanılmıştır. Seçilen konfigürasyon tüm
+ablasyonlarda sabitlenmiştir:   = 6,148e-05,
+  = 6,025e-05,   = 4,510,
+t = 0,1535.
+
+Şekil 4. Her hiperparametreye karşı doğrulama kümesi malign AUC değeri. Halka ile işaretlenen nokta seçilen konfigürasyondur.
+
+Aramada bir kenar etkisi gözlenmiştir. Kazanan   değeri 4,51
+olup makaledeki aralığın üst sınırına (4,95) oldukça yakındır; seçilen öğrenme oranı da
+örneklenen en büyük değerlere yakındır. On iki çekiliş ile dört boyutlu arama uzayının üst
+bölgesi yeterince taranamamıştır. Aralıklar makaleden olduğu gibi alındığı için
+genişletilmemiş, bu durum bir sınırlama olarak kaydedilmiştir.
+
+4. Makale -> CMMD2022 Uyarlamaları
+
+Aşağıdaki tablo yöntemin her adımını makaledeki tanımla karşılaştırmakta, farklılık
+bulunan yerlerde yapılan uyarlamayı ve gerekçesini vermektedir. Tablonun ilk dokuz satırı
+değiştirilmeden uygulanan bileşenleri, kalan satırlar veri setinin dayattığı uyarlamaları
+göstermektedir. Uyarlamaların hiçbiri mimariyi değiştirmemekte, yalnızca veri setinin
+makaledekinden ayrıldığı noktalara karşılık gelmektedir.
+
+
+
+      konu |
+      makale |
+      CMMD2022 |
+      uyarlama ve gerekçe |
+
+
+
+
+
+      Lokalizasyon ağı f_d |
+      ResNet-22, sıfırdan eğitilir |
+      Aynı |
+      Birebir uygulandı. |
+
+
+
+      Saliency map |
+      1×1 conv + sigmoid, sınıf başına bir harita |
+      Aynı |
+      Birebir uygulandı. |
+
+
+
+      Pooling f_agg |
+      top-t% ortalaması |
+      Aynı |
+      Birebir uygulandı. |
+
+
+
+      Patch ağı f_t |
+      ResNet-18, ImageNet pretrained |
+      Aynı |
+      Birebir uygulandı. ResNet-22 için yayınlanmış ImageNet ağırlığı bulunmadığından f_d tohumlanamaz; bu soru gmic_ft_scratch ablasyonuyla ters yönden ölçüldü. |
+
+
+
+      MIL birleştirme |
+      Gated attention (Ilse ve ark. 2018) |
+      Aynı |
+      Birebir uygulandı. |
+
+
+
+      Gradyan akışı |
+      Tespit modülü türevlenebilir değil; MIL loss f_d'ye akmaz |
+      Aynı |
+      Birebir uygulandı, ayrı bir testle doğrulandı. |
+
+
+
+      Çıkarım |
+      (ŷ_loc + ŷ_mil) / 2 |
+      Aynı |
+      Birebir uygulandı. |
+
+
+
+      Meme tahmini |
+      CC ve MLO görüntülerinin ortalaması |
+      Aynı |
+      Birebir uygulandı. |
+
+
+
+      Augmentation |
+      Yalnızca crop penceresi konum ve boyut gürültüsü |
+      Aynı |
+      Birebir uygulandı. Bu ölçekte yeterli olup olmadığı gmic_augment ablasyonuyla ayrıca ölçüldü. |
+
+
+
+      Ölçek |
+      229.426 tetkik, yaklaşık 1 milyon görüntü |
+      1.771 hasta, 3.734 görüntü |
+      Hiperparametre araması 100 model yerine 12 koşu; sabit 40 epoch yerine early stopping (patience 10). Aranan aralıklar değiştirilmedi. |
+
+
+
+      Etiket uzayı |
+      y ∈ {0,1}²; negatif (sağlıklı) tetkikler mevcut |
+      Her meme ya benign ya malign; sağlıklı meme yok |
+      Mimari korundu: iki sigmoid başlık, iki saliency map, iki BCE terimi. Görev malign-benign ayrımına dönüştü. |
+
+
+
+      Dengeli örnekleme |
+      Her iterasyonda pozitifler + eşit sayıda rastgele negatif |
+      Negatif sınıf yok; dengesizlik D2 alt kümesinden geliyor |
+      WeightedRandomSampler, ağırlıklar sınıf × alt küme üzerinden. Yalnız sınıfa göre ağırlıklamak benign'i çekerken D1'i de yukarı çekiyor ve alt küme dağılımını bozuyordu. |
+
+
+
+      Girdi çözünürlüğü |
+      2944×1920, native çözünürlük |
+      2294×1914, istisnasız tüm görüntüler aynı |
+      Native çözünürlük korundu: 2304×1280 (p99 boyutu, 32'nin katı). Patch boyutu 256 sabit. Bellek yeterli olduğundan kademeli düşürmeye gerek kalmadı. |
+
+
+
+      Normalizasyon |
+      Görüntü başına z-score, istatistikler pencerenin tamamından |
+      Pencerenin yaklaşık yarısı dolgu; dolgu oranı görüntüden görüntüye değişiyor |
+      İstatistikler meme maskesi içinden alındı. Pencere geneli normalizasyon, doku ortalamasını doluluk oranına bağlıyordu (ölçülen korelasyon 0,85). |
+
+
+
+      ROI seçimi |
+      Algoritma 1; seçilen bölge haritadan sıfırlanır |
+      Min-max normalizasyon sonrası arka plan zaten tam sıfır |
+      Silme değeri −1 yapıldı. Sıfırlama ile harita her yerde sıfıra eşitleniyor, argmax aynı konumu döndürüyor ve aynı patch K kez MIL modülüne giriyordu. |
+
+
+
+      Loss |
+      L = Σ[BCE + BCE] + λ·L_reg |
+      β   1 iken |A|^β türevi A→0'da ıraksıyor; AMP altında sigmoid tam sıfıra underflow ediyor |
+      L_reg'e alt sınır eklendi (clamp_min). Loss değerine etkisi 678 birim üzerinden 0,0016. |
+
+
+
+      Test kümesi |
+      Ayrı 14.148 tetkiklik test seti |
+      Tek havuz |
+      Hasta seviyesinde stratified split %70/15/15; katman etiketi sınıf × alt küme. Aynı hastanın tüm görüntüleri tek bölünmede tutuldu. |
+
+
+
+      Değerlendirme kohortu |
+      Tek kohort |
+      Yaş 0,682, D1/D2 göstergesi 0,776, ikisi birlikte 0,847 AUC veriyor |
+      Birincil kohort D1 seçildi. D2'de 115 memenin 113'ü malign olduğundan orada AUC pratik olarak tanımsız. |
+
+
+
+      Etiketsiz meme |
+      Yok; tüm tetkikler etiketli |
+      729 görüntülenmiş meme etiketsiz (kontralateral) |
+      Eğitime alınmadı. Biyopsi doğrulaması olmadan negatif varsayılamaz. |
+
+
+
+      Veri bütünlüğü |
+      — |
+      Dört hastada yinelenen piksel ve çelişen etiket (arşiv uyarısı md5 ile doğrulandı) |
+      Dört hasta da çıkarıldı; liste ozet/haric_hastalar.json dosyasında. |
+
+
+
+      Lokalizasyon metriği |
+      Piksel maskeleriyle sürekli F1 / precision / recall |
+      Piksel düzeyi lezyon maskesi yok |
+      Nicel metrik üretilemedi. Yerine makaledeki Şekil 4'ün nitel karşılığı (Bölüm 7) ve saliency aktivasyonunun meme maskesi içinde kalma oranı raporlandı. |
+
+
+
+      Moleküler alt tip |
+      Yok |
+      749 hasta için mevcut |
+      Eğitimde kullanılmadı; yalnızca vaka görsellerinde bağlam olarak verildi. |
+
+
+
+      Ek ablasyon |
+      Yok |
+      Veri 120 kat küçük, overfitting baskısı farklı |
+      gmic_augment eklendi: rotasyon ±15°, parlaklık/kontrast ±0,15, hafif affine. Ana tarif değiştirilmedi, ayrı koşu olarak ölçüldü. |
+
+
+
+
+5. Sonuçlar
+
+Değerlendirme test kümesinin D1 kohortu üzerinde yapılmıştır: 165 meme, bunların
+85 tanesi malign, 80 tanesi benigndir. Güven aralıkları sınıfa göre
+stratified bootstrap ile 2.000 tekrar üzerinden hesaplanmıştır. Model karşılaştırmalarında
+DeLong testi kullanılmıştır; aynı memeler üzerinde üretilen tahminler korelasyonlu olduğundan
+eşleşmiş bir test gereklidir.
+
+5.1 Ana karşılaştırma
+
+
+
+      model |
+      tür |
+      AUC |
+      CI alt |
+      CI üst |
+      Δ baseline |
+      p (baseline) |
+      Δ gmic |
+      p (gmic) |
+
+
+
+
+
+      ensemble_top3 |
+      türetilmiş |
+      0,791 |
+      0,720 |
+      0,858 |
+      0,137 |
+      0,000 |
+      0,054 |
+      0,029 |
+
+
+
+      gmic_hp2 |
+      eğitilmiş |
+      0,782 |
+      0,708 |
+      0,847 |
+      0,128 |
+      0,001 |
+      0,045 |
+      0,247 |
+
+
+
+      gmic_lowres |
+      eğitilmiş |
+      0,759 |
+      0,687 |
+      0,826 |
+      0,105 |
+      0,009 |
+      0,022 |
+      0,582 |
+
+
+
+      gmic_noattn |
+      eğitilmiş |
+      0,751 |
+      0,676 |
+      0,820 |
+      0,098 |
+      0,028 |
+      0,014 |
+      0,730 |
+
+
+
+      gmic_mil |
+      türetilmiş |
+      0,741 |
+      0,667 |
+      0,813 |
+      0,087 |
+      0,049 |
+      0,004 |
+      0,855 |
+
+
+
+      gmic_hp3 |
+      eğitilmiş |
+      0,740 |
+      0,663 |
+      0,813 |
+      0,086 |
+      0,049 |
+      0,003 |
+      0,944 |
+
+
+
+      gmic |
+      eğitilmiş |
+      0,737 |
+      0,660 |
+      0,810 |
+      0,083 |
+      0,024 |
+      0,000 |
+      1,000 |
+
+
+
+      gmic_augment |
+      eğitilmiş |
+      0,726 |
+      0,647 |
+      0,804 |
+      0,073 |
+      0,091 |
+      -0,011 |
+      0,773 |
+
+
+
+      gmic_random |
+      eğitilmiş |
+      0,716 |
+      0,636 |
+      0,792 |
+      0,062 |
+      0,054 |
+      -0,021 |
+      0,565 |
+
+
+
+      gmic_loc_random |
+      türetilmiş |
+      0,704 |
+      0,622 |
+      0,782 |
+      0,050 |
+      0,128 |
+      -0,033 |
+      0,294 |
+
+
+
+      gmic_ft_scratch |
+      eğitilmiş |
+      0,702 |
+      0,620 |
+      0,780 |
+      0,048 |
+      0,137 |
+      -0,035 |
+      0,368 |
+
+
+
+      gmic_loc |
+      türetilmiş |
+      0,657 |
+      0,572 |
+      0,739 |
+      0,003 |
+      0,926 |
+      -0,080 |
+      0,006 |
+
+
+
+      resnet22_baseline |
+      eğitilmiş |
+      0,654 |
+      0,573 |
+      0,736 |
+      0,000 |
+      1,000 |
+      -0,083 |
+      0,024 |
+
+
+
+
+&Delta; sütunları AUC farkını, p sütunları DeLong testinin iki yönlü p
+değerini göstermektedir. Türetilmiş olarak işaretlenen modeller ayrıca eğitilmemiş, mevcut
+çıktılardan hesaplanmıştır: gmic_loc tam modelin global dalı, gmic_mil MIL dalı,
+gmic_loc_random tam modelin global dalı ile rastgele patch varyantının MIL dalının ortalaması,
+ensemble_top3 ise aramadan çıkan ilk üç konfigürasyonun ortalamasıdır.
+
+Şekil 5. Modellerin AUC değerleri ve %95 bootstrap güven aralıkları. Noktalı dikey çizgi baseline seviyesini göstermektedir.
+
+5.2 Makale sonuçlarıyla karşılaştırma
+
+Aşağıdaki tablo, makalenin Tablo 1'inde bildirilen malign AUC değerleri ile bu çalışmada D1
+kohortunda elde edilen değerleri yan yana vermektedir. Mutlak değerler karşılaştırılabilir
+değildir; anlamlı olan varyantlar arası sıralamadır.
+
+
+
+      varyant |
+      makale (malign AUC) |
+      bu çalışma (D1) |
+      fark |
+
+
+
+
+
+      ResNet-22 (baseline) |
+      0,827 |
+      0,654 |
+      -0,173 |
+
+
+
+      GMIC-loc |
+      0,885 |
+      0,657 |
+      -0,228 |
+
+
+
+      GMIC-mil |
+      0,878 |
+      0,741 |
+      -0,137 |
+
+
+
+      GMIC-noattn |
+      0,823 |
+      0,751 |
+      -0,072 |
+
+
+
+      GMIC-random |
+      0,757 |
+      0,716 |
+      -0,041 |
+
+
+
+      GMIC-loc-random |
+      0,889 |
+      0,704 |
+      -0,185 |
+
+
+
+      GMIC (tam model) |
+      0,900 |
+      0,737 |
+      -0,163 |
+
+
+
+
+Makale sütunu Shen ve ark. (2019) Tablo 1'den alınmıştır. Bu çalışmada
+GMIC-loc, GMIC-mil ve GMIC-loc-random varyantları ayrıca eğitilmemiş, tam modelin ve rastgele
+patch varyantının çıktılarından türetilmiştir.
+
+Baseline ile tam model arasındaki fark her iki çalışmada da aynı yöndedir ve benzer
+büyüklüktedir (makalede 0,073, burada 0,083). GMIC-random varyantının tam modelin altında
+kalması da ortaktır. Buna karşılık GMIC-loc varyantı makalede baseline'ı açıklıkla aşarken bu
+çalışmada baseline seviyesinde kalmakta, GMIC-noattn ise makalede baseline seviyesine düşerken
+burada tam modelden ayırt edilememektedir.
+
+5.3 Doğrulanan bulgular
+
+GMIC, baseline modelini 0,737 karşısında 0,654 ile aşmaktadır; fark
+0,083 olup p = 0,024 düzeyinde anlamlıdır. Bu karşılaştırma çalışma tasarımında
+önceden belirlendiğinden çoklu karşılaştırma düzeltmesine tabi değildir.
+
+İlk üç konfigürasyonun ensemble'ı 0,791
+[0,720-0,858] ile en yüksek sonucu vermekte ve tek başına tam
+modeli de anlamlı olarak aşmaktadır (p = 0,029). Bu bulgu, arama sonuçlarında ilk üç
+konfigürasyonun birbirinden ayırt edilememesiyle tutarlıdır.
+
+Global dalın tek başına yetersiz kaldığı görülmektedir. gmic_loc varyantı
+0,657 değerinde olup baseline'dan farksızdır
+(p = 0,93) ve tam modelden anlamlı olarak düşüktür
+(p = 0,006). Makalede GMIC-loc varyantı 0,885 ile baseline'ı (0,827)
+açıklıkla aşmaktaydı. Bu veri setinde performansı taşıyan bileşen MIL dalıdır; tam model ile
+gmic_mil arasında anlamlı fark bulunmamaktadır
+(p = 0,85). Makaleden ayrışan en belirgin bulgu budur.
+
+5.4 Ölçülemeyen farklar
+
+Ablasyon varyantlarının hiçbiri tam modelden istatistiksel olarak ayırt edilememektedir.
+Attention mekanizmasının devre dışı bırakıldığı varyant için
+p = 0,73, yarı çözünürlük varyantı için
+p = 0,58, rastgele patch varyantı için
+p = 0,57, ImageNet pretrained ağırlıkları olmadan eğitilen
+varyant için p = 0,37 elde edilmiştir.
+
+Bu sonucun doğru yorumu, söz konusu bileşenlerin katkısız olduğu değil, katkılarının mevcut
+örneklem büyüklüğünde ölçülemediğidir. Ortalama güven aralığı genişliği
+0,152 iken makalede bildirilen ablasyon etkileri 0,02 ile 0,08
+aralığındadır; aranan etki büyüklüğü, ölçüm belirsizliğinin altında kalmaktadır.
+
+Baseline'a karşı toplam 12 karşılaştırma yapılmıştır.   = 0,05 düzeyinde
+tesadüfen bir yanlış pozitif gözlenmesi beklenir. Bonferroni düzeltmesi uygulandığında
+(eşik 0,05/12 = 0,0042) yalnızca
+ensemble_top3, gmic_hp2 varyantları anlamlı
+kalmaktadır. Keşifsel nitelikteki ablasyon karşılaştırmaları bu eşikle değerlendirilmelidir;
+önceden belirlenmiş birincil hipotez bu düzeltmenin kapsamı dışındadır.
+
+5.5 Alt gruplar
+
+
+
+      model |
+      kırılım |
+      değer |
+      n |
+      n malign |
+      ensemble_top3 |
+      gmic |
+      gmic_loc |
+      gmic_mil |
+      resnet22_baseline |
+
+
+
+
+
+       |
+      abnormality |
+      both |
+      65,000 |
+      59,000 |
+      0,887 |
+      0,816 |
+      0,542 |
+      0,898 |
+      0,729 |
+
+
+
+       |
+      abnormality |
+      calcification |
+      38,000 |
+      29,000 |
+      0,739 |
+      0,759 |
+      0,636 |
+      0,793 |
+      0,713 |
+
+
+
+       |
+      abnormality |
+      mass |
+      177,000 |
+      110,000 |
+      0,775 |
+      0,710 |
+      0,657 |
+      0,704 |
+      0,635 |
+
+
+
+       |
+      alt küme |
+      D1 |
+      165,000 |
+      85,000 |
+      0,791 |
+      0,737 |
+      0,657 |
+      0,741 |
+      0,654 |
+
+
+
+       |
+      alt küme |
+      D2 |
+      115,000 |
+      113,000 |
+      0,770 |
+      0,819 |
+      0,845 |
+      0,726 |
+      0,832 |
+
+
+
+       |
+      yaş |
+      45-55 |
+      83,000 |
+      63,000 |
+      0,897 |
+      0,817 |
+      0,620 |
+      0,883 |
+      0,686 |
+
+
+
+       |
+      yaş |
+       45 |
+      124,000 |
+      71,000 |
+      0,713 |
+      0,637 |
+      0,613 |
+      0,629 |
+      0,604 |
+
+
+
+       |
+      yaş |
+       55 |
+      73,000 |
+      64,000 |
+      0,738 |
+      0,723 |
+      0,444 |
+      0,783 |
+      0,540 |
+
+
+
+
+Alt grupların büyük kısmı tek taraflı bir sınıf dağılımına sahiptir. D2 kohortunda ve
+abnormality değeri "both" olan kırılımda negatif örnek sayısı tek haneli olduğundan bu
+satırlardaki AUC değerleri yorumlanamaz. İstatistiksel olarak değerlendirilebilir tek alt grup
+"mass" kırılımıdır.
+
+6. Eğitim Davranışı
+
+Şekil 6. GMIC eğitim eğrileri: loss bileşenleri, AUC gelişimi, attention entropisi ve saliency aktivasyonu.
+
+Şekil 7. ResNet-22 baseline eğitim eğrileri.
+
+7. Vaka Görselleri
+
+Aşağıdaki görseller makaledeki Şekil 4'ün karşılığıdır. Her vakada sırasıyla ön işlenmiş
+girdi, benign ve malign saliency map'leri (sabit 0-1 ölçeğinde), Algoritma 1 tarafından
+seçilen 6 ROI ve attention ağırlığına göre sıralanmış patch'ler yer almaktadır. CMMD2022 veri
+setinde piksel düzeyinde lezyon maskesi bulunmadığından makaledeki nicel lokalizasyon metrikleri
+hesaplanamamış, yerine bu nitel değerlendirme sunulmuştur.
+
+Şekil 8. D2-0550_R -- Malignant, mass, 46 yaş, D2 alt kümesi.
+
+Şekil 9. D2-0094_R -- Malignant, calcification, 47 yaş, D2 alt kümesi.
+
+Şekil 10. D1-0365_R -- Malignant, both, 78 yaş, D1 alt kümesi.
+
+Şekil 11. D1-0894_R -- Benign, mass, 37 yaş, D1 alt kümesi.
+
+Şekil 12. D1-0033_R -- Benign, calcification, 57 yaş, D1 alt kümesi.
+
+Şekil 13. D1-0242_R -- Benign, both, 58 yaş, D1 alt kümesi.
+
+8. Sonuç ve Sınırlamalar
+
+GMIC'in temel iddiası, yani saliency map üzerinden seçilen yüksek çözünürlüklü patch'lerin
+MIL ile birleştirilmesinin aynı backbone'a sahip bir sınıflandırıcıya göre daha iyi sonuç
+verdiği önermesi, bu veri setinde de geçerlidir ve istatistiksel olarak desteklenmektedir.
+Ancak kazancın mimarinin hangi bileşeninden geldiği ayrıştırılamamıştır. Makalede her iki dal da
+baseline'ı aşarken, bu çalışmada global dal baseline seviyesinde kalmakta, kazanç MIL dalından
+gelmektedir.
+
+Çalışmanın sınırlamaları aşağıda sıralanmıştır.
+
+Test kohortu 165 meme ile sınırlıdır ve güven aralıkları yaklaşık
+0,15 genişliğindedir. Ablasyon farklarını ölçecek istatistiksel güç
+bulunmamaktadır.
+
+Veri seti makaledekinden yaklaşık 120 kat küçüktür; mutlak AUC değerleri karşılaştırılabilir
+nitelikte değildir.
+
+Hiperparametre araması sırasında batch boyutu ayarı değişmiştir (4'ten 16'ya). Efektif batch
+boyutu sabit kalmakla birlikte BatchNorm istatistikleri batch boyutuna bağlıdır; koşuların bir
+kısmı farklı ayar altında seçilmiştir.
+
+Alt grup analizleri, negatif örnek sayıları yetersiz olduğundan "mass" kırılımı dışında
+yorumlanamaz.
+
+Rastgele patch varyantının RNG durumu checkpoint'e yazılmadığından, eğitim yarıda kesilip
+devam ettirildiğinde patch dizisi baştan başlamaktadır.
+
+Kaynaklar
+
+Shen Y, Wu N, Phang J, Park J, Kim G, Moy L, Cho K, Geras KJ. Globally-Aware Multiple
+Instance Classifier for Breast Cancer Screening. In: Suk H-I ve ark. (Ed.) MLMI 2019,
+LNCS 11861, s. 18-26. Springer, 2019. DOI: 10.1007/978-3-030-32692-0_3.
+
+Wu N, Phang J, Park J, ve ark. Deep Neural Networks Improve Radiologists' Performance in
+Breast Cancer Screening. IEEE Transactions on Medical Imaging 2020;39(4):1184-1194.
+DOI: 10.1109/TMI.2019.2945514. Uygulama: github.com/nyukat/GMIC ve
+github.com/nyukat/breast_cancer_classifier.
+
+Ilse M, Tomczak JM, Welling M. Attention-based Deep Multiple Instance Learning.
+ICML 2018. arXiv:1802.04712.
+
+Cui C, Li L, Cai H, Fan Z, Zhang L, Dan T, Li J, Wang J. The Chinese Mammography Database
+(CMMD): An Online Mammography Database with Biopsy Confirmed Types for Machine Diagnosis of
+Breast. The Cancer Imaging Archive, 2021. DOI: 10.7937/tcia.eqde-4b16.
+
+Cai H, Wang J, Dan T, Li J, Fan Z, Yi W, Cui C, Jiang X, Li L. An Online Mammography
+Database with Biopsy Confirmed Types. Scientific Data 2023;10:123.
+DOI: 10.1038/s41597-023-02025-1.
+
+DeLong ER, DeLong DM, Clarke-Pearson DL. Comparing the Areas under Two or More Correlated
+ROC Curves: A Nonparametric Approach. Biometrics 1988;44(3):837-845.
+
+Sun X, Xu W. Fast Implementation of DeLong's Algorithm for Comparing the Areas Under
+Correlated ROC Curves. IEEE Signal Processing Letters 2014;21(11):1389-1393.

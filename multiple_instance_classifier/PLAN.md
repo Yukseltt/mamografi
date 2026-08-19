@@ -301,6 +301,8 @@ Dolayısıyla **7 eğitim koşusu** var: 1, 2, 5, 6, 8, 9, 10.
 - **`gmic_cmmd_veri_hazirlik.ipynb`** — Faz 0/1: DICOM okuma, klinik XLSX eşleştirme, meme
   maskesi + kırpma, split üretimi, `.npy`/`.png` önbellek yazımı. Bir kez koşar, çıktısı Drive'da.
 - **`hazir/onisleme.py`** — Parça 2 tarafından üretilen paylaşılan ön işleme modülü (`pencere_al`, `z_score`, `kirp_ve_cevir`, `best_center`, `en_buyuk_bilesen`). Eğitim notebook'u bunu import eder; fonksiyonlar iki yerde kopyalanmaz. Augmentasyon ve normalizasyon sabitleri de `hazir/config.json`'dan okunur — tek kaynak.
+- **`gmic_cmmd_degerlendirme.ipynb`** — Parça 9. Eğitim notebook'undan **bağımsız**: GPU gerekmez, yalnızca Parça 8'in yazdığı meme seviyesi tahminleri okur. Deney listesini `*/​*_test_tahminler.xlsx` deseninden kendisi keşfeder, `SEED`'i `hazir/config.json`'dan, ensemble üyelerini `arama/secim.json`'dan alır.
+- **`gmic_cmmd_rapor.ipynb`** — Parça 10. Vaka görselleri (makale Şekil 4 karşılığı) ve tek dosyalık HTML rapor. Model tanımlarını **kopyalamaz**: eğitim notebook'undaki hücreleri işaretlerine göre bulup çalıştırır, böylece mimari tek kaynakta kalır (Parça 2'deki `hazir/onisleme.py` mantığının aynısı).
 - **`butunluk.py`** — `hazir/` klasörünün bütünlük kontrolü. `uret` modu yerelde dosya başına
   boyut + md5 referansı (`hazir/butunluk.json`) yazar; `kontrol` modu bulunduğu ortamda bunu
   doğrular. Kökü kendi bulur, yani yerelde ve Colab'da aynı komutla koşar. Yedi şeyi kontrol
@@ -448,8 +450,13 @@ pipeline'ında yok.
 Sonuçlar:
 
 - **Darboğaz GPU değil I/O'ydu.** Drive FUSE üzerinden 3.734 küçük PNG okumak epoch süresini ~5×
-  şişiriyordu. `hazir/`'ı bir kez `/content/hazir`'a kopyalamak (33 dk) epoch'u 2,8 dk'ya indirdi.
+  şişiriyordu. `hazir/`'ı bir kez `/content/hazir`'a kopyalamak epoch'u 2,8 dk'ya indirdi.
   Bu makaleden sapma değil, yalnızca I/O. `/content` geçici: her yeni VM'de kopya yenilenir.
+  Bu yüzden kopya iki yollu: **`hazir.tar` varsa** tek büyük dosya açılır (~2-4 dk), **yoksa**
+  dosya dosya kopyalanır (~33 dk) ve sonrasında tar üretilip Drive'a yazılır — sonraki oturum
+  hızlı yola düşer. Tar yarım kalırsa `.kismi` adıyla yazılıp sonunda yeniden adlandırıldığı
+  için bozuk tar bırakmıyor; eksik çıkarsa dosya dosya tamamlanıyor. Her iki yolda da PNG
+  sayısı, toplam bayt ve beş meta dosya doğrulanıyor.
 - **T4 yeterli, A100 gereksiz** — bellek kullanımı %10, GPU beklemede.
 - **Batch tutarlılığı — açık nokta.** Batch, aramanın içinde ve arama ile Parça 8 arasında
   sabit tutulmalı: efektif batch aynı kalsa bile `BATCH` değişince ResNet-22'nin **BatchNorm
@@ -521,6 +528,61 @@ makaleden); bu yüzden aralık **değiştirilmedi**, kenar etkisi raporda not ol
 Loss fp32'de hesaplanacak (`logits.float()`): `mendeley_data_density`'de AMP altında soft-Dice
 terimi fp16 tavanını aşıp sessizce gradyan üretmeyi bırakmıştı. Burada Dice yok ama `L_reg`
 tam SM üzerinden toplam alıyor (aynı taşma riski) → `A` üzerindeki toplam da fp32'de.
+
+---
+
+### Parça 8 sonuçları — **tamamlandı**, 9/9 koşu
+
+Test **D1 kohortu** (birincil, 165 meme), malign AUC'ye göre sıralı. Makale sütunu Tablo 1'den.
+
+| deney | malign AUC | loc | mil | benign AUC | val malign | en iyi epoch | makale (malign) |
+|---|---|---|---|---|---|---|---|
+| `gmic_hp2` | **0,782** | 0,647 | 0,787 | 0,777 | 0,801 | 27 | — (arama 2. sırası) |
+| `gmic_lowres` | 0,759 | 0,691 | 0,741 | 0,739 | 0,774 | 18 | — |
+| `gmic_noattn` | 0,751 | 0,654 | 0,737 | 0,766 | 0,789 | 22 | 0,823 |
+| `gmic_hp3` | 0,740 | 0,706 | 0,735 | 0,740 | 0,773 | 30 | — (arama 3. sırası) |
+| `gmic` | 0,737 | 0,657 | 0,741 | 0,732 | 0,780 | 14 | **0,900** |
+| `gmic_augment` | 0,726 | 0,695 | 0,693 | 0,698 | 0,777 | 33 | — (makalede yok) |
+| `gmic_random` | 0,716 | 0,666 | 0,692 | 0,715 | 0,719 | 16 | 0,757 |
+| `gmic_ft_scratch` | 0,702 | 0,688 | 0,687 | 0,701 | 0,710 | 20 | — |
+| `resnet22_baseline` | 0,654 | — | — | 0,655 | 0,678 | 9 | 0,827 |
+
+#### Yeniden üretilen
+
+- **Ana tez doğrulandı**: GMIC baseline'ı **+0,083** aşıyor (0,737 vs 0,654). Makalede bu fark
+  +0,073 (0,900 vs 0,827) — büyüklük olarak şaşırtıcı derecede yakın, üstelik 120× küçük veriyle.
+  Tablodaki en büyük fark bu ve tek başına anlamlı olma ihtimali en yüksek olan da bu.
+- `gmic_random` (0,716) tam modelin altında → Algoritma 1'in seçtiği ROI'ler rastgele
+  yamalardan iyi. Makaledeki yön aynı.
+- `gmic_ft_scratch` (0,702) tam modelin altında → `f_t`'nin ImageNet ön-eğitimi katkı sağlıyor.
+  Bu ablasyon makalede yok, `gmic_fd_imagenet`in yerine eklenmişti.
+
+#### Yeniden üretilemeyen
+
+- **`gmic_noattn` (0,751) tam modelin ÜSTÜNDE.** Makalede attention'ın gerekliliği bu ablasyonla
+  gösteriliyor (0,823, yani baseline seviyesine düşüyor). Bizde düşmüyor. Olası sebep: K=6 yamada
+  öğrenilecek ağırlıklandırma az ve 1.239 hastalık eğitim kümesinde gated attention'ın ek
+  parametreleri kazançtan çok varyans getiriyor.
+- **`gmic_lowres` (0,759) tam modelin ÜSTÜNDE.** Makalenin "downsampling ince detayı yok eder"
+  tezinin tersi. CMMD görüntüleri zaten 8-bit ve pencerelenmiş (Bölüm 1), yani makalenin
+  korumaya çalıştığı dinamik aralık veri setinde zaten yok.
+- **`loc` < `mil` her koşuda.** Makalede tersi (GMIC-loc 0,885 > GMIC-mil 0,878). Bizde global
+  dal tek başına belirgin zayıf (0,647-0,706), MIL dalı taşıyor.
+
+#### Ama önce istatistik
+
+D1 test kohortu **165 meme**. Bu ölçekte AUC'nin standart hatası kabaca ±0,04, yani
+**pairwise farkların ~0,11'in altındakileri gürültüden ayrılamaz.** Yukarıdaki sıralamanın
+büyük kısmı — özellikle 0,70-0,78 arasında sıkışan yedi deney — bu bandın içinde.
+Sadece baseline farkı bandın kenarında.
+
+Bu yüzden "yeniden üretilemeyen" başlığı **şimdilik bir gözlem, sonuç değil**. Parça 9'un
+bootstrap CI ve DeLong testleri hangi farkın gerçek olduğunu söyleyecek. Rapor bu ayrımı
+açıkça yapacak.
+
+Ek not: `gmic_hp2` (aramanın 2. sırası) tam bütçede `gmic`'i geçti. Parça 7'de "top-3
+birbirinden ayrılamaz" diye kaydedilen belirsizliğin doğrudan sonucu; ensemble'ın gerekçesi
+tam olarak bu.
 
 ---
 
@@ -659,6 +721,75 @@ Rapor: `rapor/figurleri_uret.py` tüm figürleri tek koddan üretir (aynı eşik
 
 ---
 
+## 9b. Parça 9 Sonuçları — istatistiksel değerlendirme
+
+Test **D1 kohortu**: 165 meme (85 malign / 80 benign). Bootstrap %95 CI (2.000 tekrar),
+DeLong ile eşleşmiş karşılaştırma.
+
+| model | tür | AUC (%95 CI) | vs baseline | vs `gmic` |
+|---|---|---|---|---|
+| `ensemble_top3` | türetilmiş | **0,791** [0,720-0,858] | +0,137 (**p=0,0001**) | +0,054 (**p=0,029**) |
+| `gmic_hp2` | eğitilmiş | 0,782 [0,708-0,847] | +0,128 (**p=0,0007**) | +0,045 (p=0,25) |
+| `gmic_lowres` | eğitilmiş | 0,759 [0,687-0,826] | +0,105 (**p=0,009**) | +0,022 (p=0,58) |
+| `gmic_noattn` | eğitilmiş | 0,751 [0,676-0,820] | +0,098 (**p=0,028**) | +0,014 (p=0,73) |
+| `gmic_mil` | türetilmiş | 0,741 [0,667-0,813] | +0,087 (p=0,049) | +0,004 (p=0,86) |
+| `gmic_hp3` | eğitilmiş | 0,740 [0,663-0,813] | +0,086 (p=0,049) | +0,003 (p=0,94) |
+| **`gmic`** | eğitilmiş | **0,737** [0,660-0,810] | **+0,083 (p=0,024)** | — |
+| `gmic_augment` | eğitilmiş | 0,726 [0,647-0,804] | +0,073 (p=0,091) | −0,011 (p=0,77) |
+| `gmic_random` | eğitilmiş | 0,716 [0,636-0,792] | +0,062 (p=0,054) | −0,021 (p=0,57) |
+| `gmic_loc_random` | türetilmiş | 0,704 [0,622-0,782] | +0,050 (p=0,13) | −0,033 (p=0,29) |
+| `gmic_ft_scratch` | eğitilmiş | 0,702 [0,620-0,780] | +0,048 (p=0,14) | −0,035 (p=0,37) |
+| `gmic_loc` | türetilmiş | 0,657 [0,572-0,739] | +0,003 (p=0,93) | −0,080 (**p=0,006**) |
+| `resnet22_baseline` | eğitilmiş | 0,654 [0,573-0,736] | — | −0,083 (**p=0,024**) |
+
+### Ne kanıtlandı
+
+1. **Makalenin ana tezi doğrulandı ve istatistiksel olarak destekleniyor.** GMIC baseline'ı
+   **+0,083 (p=0,024)** aşıyor. Makalede fark +0,073. Bu karşılaştırma **önceden
+   belirlenmişti** (Bölüm 4), dolayısıyla çoklu karşılaştırma düzeltmesi gerektirmiyor.
+2. **Ensemble en iyi (0,791)** ve tam modeli anlamlı biçimde aşıyor (p=0,029). Makalenin
+   ensemble pratiğini destekliyor; Parça 7'deki "top-3 ayrılamaz" gözleminin doğru okuması da
+   buydu — tekil en iyiyi seçmek yerine üçünü birleştirmek.
+3. **`gmic_loc` baseline seviyesinde** (0,657 vs 0,654, p=0,93) ve tam modelden anlamlı biçimde
+   kötü (p=0,006). Makalede GMIC-loc 0,885 ile baseline'ı (0,827) açıkça aşıyordu. **Bizde
+   global dal tek başına hiçbir şey katmıyor; GMIC'i yukarı taşıyan MIL dalı.**
+   `gmic` (0,737) ile `gmic_mil` (0,741) arasında fark yok (p=0,86), yani iki dalın
+   birleştirilmesi bu veride MIL dalının tek başına yaptığından fazlasını yapmıyor.
+
+### Ne kanıtlanamadı — ve bu "tersi kanıtlandı" demek değil
+
+Parça 8 tablosuna bakıp `gmic_noattn` ve `gmic_lowres`'in tam modelin üstünde olmasını
+"ablasyon yeniden üretilemedi" diye yorumlamıştım. **DeLong bunu desteklemiyor:**
+
+- `gmic_noattn` vs `gmic`: +0,014, **p=0,73**
+- `gmic_lowres` vs `gmic`: +0,022, **p=0,58**
+- `gmic_random` vs `gmic`: −0,021, **p=0,57**
+- `gmic_ft_scratch` vs `gmic`: −0,035, **p=0,37**
+
+Yani bu dört ablasyonun hiçbirinde tam modelden **ayırt edilebilir bir fark yok**. Doğru ifade
+"attention gereksiz çıktı" değil, **"bu örneklem büyüklüğünde attention'ın katkısını ölçemedik"**.
+Ortalama CI genişliği 0,152; ablasyon etkilerinin makaledeki büyüklüğü (0,02-0,08) bu bandın
+altında kalıyor. 165 memeyle bu farkları ölçmek için gereken güç yok.
+
+### Çoklu karşılaştırma uyarısı
+
+Baseline'a karşı 12 test yapıldı. α=0,05'te tesadüfen 0-1 yanlış pozitif beklenir.
+Bonferroni eşiği (0,05/12 = 0,0042) uygulanırsa yalnızca `ensemble_top3` (p=0,0001) ve
+`gmic_hp2` (p=0,0007) hayatta kalır; `gmic` (p=0,024) kalmaz. Raporda hem ham hem düzeltilmiş
+okuma verilecek: **birincil hipotez (GMIC > baseline) düzeltme gerektirmez**, keşifsel
+ablasyonlar gerektirir.
+
+### Alt grup tablosunda kritik uyarı
+
+`D2` kohortunda **115 memenin 113'ü malign** — yalnızca 2 negatif var. Oradaki AUC değerleri
+(0,73-0,85) iki örnek üzerinden hesaplanıyor ve **yorumlanamaz**. Aynı sorun `abnormality=both`
+(65 memenin 59'u malign) ve `yaş>55` (73'ün 64'ü) için de geçerli.
+Güvenilir tek alt grup **`mass`** (177 meme, 110 malign): `gmic` 0,710 vs baseline 0,635.
+Bu, D1'i birincil kohort seçme kararının (Bölüm 1) ne kadar yerinde olduğunu bir kez daha
+gösteriyor.
+
+---
+
 ## 10. Aşamalar
 
 Süreç **10 parçaya** bölündü. Her parça tek bir somut çıktı üretir ve bitmeden sonrakine
@@ -674,9 +805,9 @@ geçilmez. Sıradaki parça açılırken bu tablo güncellenir (durum kolonu).
 | **6** | Eğitim döngüsü + smoke test | Metrikler (meme seviyesi AUC, `attn_entropi`, `sm_ort_aktivasyon`, `sm_meme_ici_oran`), AMP + clipping, early stopping; 2 epoch × küçük alt küme | çalışan `gmic_cmmd_egitim.ipynb` | **TAMAM** — yerelde CPU'da (576×320) ve Colab GPU'da **tam çözünürlükte (2304×1280)** baştan sona geçti: 22/22 log kolonu dolu, checkpoint + grafik + resume doğrulandı, OOM yok |
 | **6b** | Drive bütünlük kontrolü | `butunluk.py` ile Colab'daki `hazir/` klasörünün yerel referansa karşı doğrulanması | `hazir/butunluk.json` + geçen kontrol | **TAMAM** — 3.739 dosyanın tamamı yereldekiyle bit bazında aynı (md5), 3.734 PNG'nin hepsi açıldı ve manifestteki şekil/tipe uydu, split ve etiket tutarlılığı geçti |
 | **7** | Hiperparametre araması | 12 koşu × 15 epoch, `η/λ/β/t` log-uniform; seçim ölçütü val malign AUC | seçilen konfigürasyon + en iyi 3 | **TAMAM** — 12/12 koşu başarılı (7,7 saat), en iyi koşu 05 val malign AUC 0,8133, `HP` hücre 3'e işlendi, top-3 = 05/04/10 |
-| **8** | Tam eğitimler | **9 koşu** (7 ablasyon + ensemble için aramanın 2. ve 3. konfigürasyonu), 40 epoch, patience 10 | 9 × log / curves / test_summary / test_tahminler + `karsilastirma_ozeti.xlsx` | **kod hazır, koşu kullanıcıda** — `deney_ayarla` (deney başına global kurulum, `gmic_lowres` için λ×4), `ek_augmentasyon`, `test_degerlendir` (meme seviyesi test + D1/D2 kırılımı), resume + atlama; yerelde 3 deney × 1 epoch ile uçtan uca test edildi |
-| **9** | Değerlendirme | Bootstrap AUC CI, DeLong testleri, alt grup kırılımı (`abnormality`, `Age`), ensemble | `comparison_table.xlsx` | bekliyor |
-| **10** | Rapor | `rapor/figurleri_uret.py` + `build_report.py`, base64 gömülü tek HTML → Chrome ile PDF | `rapor/gmic_cmmd_raporu.pdf` | bekliyor |
+| **8** | Tam eğitimler | 9 koşu (7 ablasyon + ensemble için aramanın 2. ve 3. konfigürasyonu), 40 epoch, patience 10 | 9 × log / curves / test_summary / test_tahminler + `karsilastirma_ozeti.xlsx` | **TAMAM** — 9/9 koşu bitti; test D1 malign AUC: `gmic` 0,737 vs `resnet22_baseline` 0,654 (+0,083, makalede +0,073). Ablasyon sıralaması kısmen yeniden üretildi, ayrıntı ve istatistik uyarısı Bölüm 7'de |
+| **9** | Değerlendirme | Bootstrap AUC CI, DeLong testleri, alt grup kırılımı, türetilmiş deneyler, ensemble | `degerlendirme/` altında dört çıktı | **TAMAM** — GMIC vs baseline **+0,083 (p=0,024)**, ensemble 0,791 (tam modelden de iyi, p=0,029); ablasyonların hiçbiri tam modelden ayırt edilemiyor. Ayrıntı Bölüm 9b |
+| **10** | Rapor | Vaka görselleri + base64 gömülü tek HTML | `rapor/gmic_cmmd_raporu.html` (7,6 MB) + `rapor/figurler/vaka_*.png` | **TAMAM** — 6 vaka figürü (3 malign / 3 benign, mass-calcification-both dengeli) ve tek dosyalık rapor üretildi |
 
 Sıra notu: 3 numaralı parça veriden bağımsız olduğu için 1–2 ile paralel yürütülebilir, ancak
 karışıklık olmaması için sırayla gidiliyor.
@@ -708,7 +839,8 @@ notebook dosyası yerelde (git'ten), veri ve loglar Drive'da.
 |---|---|---|
 | `archive/` | ham CMMD2022 DICOM'ları | Kaggle'dan yeniden indirilir |
 | `hazir/` | 3.734 kırpılmış PNG (2,78 GB) + `manifest.csv`, `split.json`, `eval_cases.json`, `config.json`, `onisleme.py` | Parça 2 `archive/`'den yeniden üretir |
-| `arama/` | Parça 7 koşu logları + `sonuc.json` + `secim.json` | **yeniden üretilemez** — 8,5 saatlik koşu |
+| `arama/` | Parça 7 koşu logları + `sonuc.json` + `secim.json` | **yeniden üretilemez** — 7,7 saatlik koşu |
+| `hazir.tar` | `hazir/`'ın tek dosyalık kopyası (2,8 GB), hızlı VM kurulumu için | hücre 43 yeniden üretir |
 | `gmic/`, diğer deney klasörleri | Parça 8 logları, checkpointler, grafikler | yeniden üretilemez |
 
 Git'te **olmayan ve olmaması gerekenler**: `hazir/`'ın PNG'leri (2,8 GB), `archive/`,
@@ -720,7 +852,8 @@ Git'te **olmayan ve olmaması gerekenler**: `hazir/`'ın PNG'leri (2,8 GB), `arc
 2. Aynı Google hesabıyla Colab'a bağlan; Drive'daki veri olduğu yerde durur, yüklemeye gerek yok.
 3. VSCode'da Colab kernel'ine bağlan, `gmic_cmmd_egitim.ipynb`'i aç.
 4. `butunluk.py kontrol` ile Drive'daki `hazir/`'ı doğrula (referans git'ten geldi).
-5. Hücre 43 `hazir/`'ı `/content/hazir`'a kopyalar (~33 dk, yeni VM'de her seferinde).
+5. Hücre 43 `hazir/`'ı `/content/hazir`'a alır: `hazir.tar` varsa ~2-4 dk, yoksa ~33 dk
+   (ve tar'ı bir sonraki oturum için üretir). Yeni VM'de her seferinde gerekir.
 6. Arama yarımsa hücre 48'i koş — bitmiş koşular `sonuc.json` sayesinde atlanır.
 
 Tek kısıt: Drive hesabı aynı olmalı. Farklı hesapla devam edilecekse `archive/` + `hazir/`
@@ -747,3 +880,20 @@ Tek kısıt: Drive hesabı aynı olmalı. Farklı hesapla devam edilecekse `arch
   `sm_ort_aktivasyon` kolonu bunun canlı nöbetçisi.
 - **TCIA yinelenen hash uyarısı**: çakışan görüntüler çıkarılmazsa split sızıntısı olur;
   Faz 0'da kontrol edilecek.
+
+---
+
+## 13. Durum
+
+**On parçanın tamamı bitti.** Zincir: ham DICOM → `hazir/` (3.734 görüntü) → 12 koşuluk
+hiperparametre araması (7,7 saat) → 9 tam eğitim (~22 saat) → istatistiksel değerlendirme →
+rapor.
+
+Ana bulgu: **GMIC, ResNet-22 baseline'ını +0,083 AUC aşıyor (p = 0,024)**; makalede bu fark
++0,073. Ensemble 0,791 ile en iyi sonucu veriyor. Ablasyonların hiçbiri tam modelden ayırt
+edilemiyor — 165 memelik test kohortunda bu farkları ölçecek istatistiksel güç yok.
+
+Yeniden üretilebilirlik için gereken her şey kayıtlı: `arama/secim.json` (seçilen
+hiperparametreler), deney başına log + checkpoint + test tahminleri,
+`degerlendirme/tahmin_matrisi.xlsx` (13 modelin meme seviyesi tahminleri),
+`hazir/butunluk.json` (veri bütünlüğü referansı).

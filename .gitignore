@@ -43,6 +43,7 @@ multiple_instance_classifier/archive/
 # butunluk.json haric: Drive kopyasini dogrulamak icin gereken referans, 250 KB
 multiple_instance_classifier/hazir/*
 !multiple_instance_classifier/hazir/butunluk.json
+multiple_instance_classifier/hazir.tar
 multiple_instance_classifier/hazir_smoke/
 multiple_instance_classifier/hazir_duman/
 
