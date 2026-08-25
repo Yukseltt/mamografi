@@ -56,3 +56,25 @@ multiple_instance_classifier/outputs/
 multiple_instance_classifier/arama/
 multiple_instance_classifier/gmic*/
 !multiple_instance_classifier/gmic_cmmd_*.ipynb
+
+# ISLES 2022 ham veri (Zenodo 1.7 GB, ayrica indirilir + Drive)
+iskemik_inme/ISLES-2022/
+iskemik_inme/veri/
+
+# ISLES egitim ciktilari: Drive kalici depo, yerel ayna gecici
+iskemik_inme/outputs/
+iskemik_inme/hazir/
+iskemik_inme/onnx/
+iskemik_inme/*.pt
+
+# Parca 8 yerel olcum ciktilari ve gecici indirmeler
+iskemik_inme/ISLES-2022.zip
+iskemik_inme/onnx/
+iskemik_inme/dagitim/
+iskemik_inme/*.log
+
+# Servis ciktilari (yeniden uretilir)
+iskemik_inme/servis/*.xlsx
+iskemik_inme/servis/ornek_rapor.html
+iskemik_inme/rapor/girdi/
+iskemik_inme/rapor/girdi/
