@@ -78,3 +78,6 @@ iskemik_inme/servis/*.xlsx
 iskemik_inme/servis/ornek_rapor.html
 iskemik_inme/rapor/girdi/
 iskemik_inme/rapor/girdi/
+
+# staj: uretim ara ciktilari (HTML) surumlenmiyor, DOCX/PDF uretilen/ altinda
+staj_defteri/uretim/*.html
