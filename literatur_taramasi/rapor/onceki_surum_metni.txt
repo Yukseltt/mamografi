@@ -1,0 +1,494 @@
+       SİSTEMATİK LİTERATÜR DEĞERLENDİRMESİ · 2020–2026
+
+Mamografi ile Meme Kanseri
+                 Tahmini
+
+         İki Kollu İnceleme: Tespit/Sınıflandırma ve Risk Tahmini
+
+                                        Hazırlayan: Erhan Yüksel Turgut
+        Bağlam: Mamosis — Yapay Zeka Destekli Tıbbi Görüntüleme (Mamografi)
+
+                     Kapsam: Derin öğrenme tabanlı yaklaşımlar, 2020–2026
+               Dayanak: 38 doğrulanmış kaynak · 2 PRISMA sistematik derleme
+İçindekiler
+
+1. Yönetici Özeti
+2. Giriş: İki Problem, İki Kol
+3. KOL 1 Tespit ve Sınıflandırma (CAD)
+
+     3.1 Alanın Genel Görünümü ve Mimari Evrimi
+     3.2 Lezyon Tespiti
+     3.3 Sınıflandırma ve Temel Modeller
+     3.4 Meme Yoğunluğu Değerlendirmesi
+     3.5 Sentez Matrisi
+
+4. KOL 2 Risk Tahmini (Prognostik)
+     4.1 Referans Model: Mirai
+     4.2 Açıklanabilirlik: AsymMirai
+     4.3 Longitudinal / Temporal Modeller
+     4.4 Dış Doğrulama Sınırları
+     4.5 Sentez Matrisi
+
+5. Ana Public Veri Setleri
+6. Ana Eğilimler (2024–2026)
+7. Performans İddialarının Eleştirel Değerlendirmesi
+8. Öneriler ve Karar Eşikleri
+9. Sınırlamalar ve Uyarılar
+10. Arama Platformları ve Sorgu Stratejileri
+11. Kaynakça (Tam Bağlantılar)
+
+Mamografi ile Meme Kanseri Tahmini — Literatür  2 /
+
+Değerlendirmesi                                 11
+1. Yönetici Özeti
+
+Bu rapor, "mamografi ile meme kanseri tahmini" alanını 2020–2026 döneminde iki ayrı kol
+olarak inceler. Bu iki kol farklı problem, farklı veri ve farklı değerlendirme mantığı taşır ve
+karıştırılmamalıdır.
+
+Kol 1 — Tespit / Sınıflandırma (CAD): Mevcut mamogramda lezyon (kitle, kalsifikasyon)
+bulmak ve iyi/kötü huylu ayrımı yapmaktır. Alan CNN mimarilerinden (ResNet, EfficientNet,
+YOLO) transformer ve vizyon-dil temel modellerine (Mammo-CLIP, MammoDINO) doğru
+kaymaktadır. Küçük ve dengesiz veri setlerinde bildirilen yüzde 99–100 doğruluk değerleri
+klinik olarak yanıltıcıdır. Gerçekçi büyük ölçekli kıyaslamada, 2023 RSNA yarışmasında 1.537
+algoritma arasında en iyisi yalnızca 0,555 probabilistik F1 elde etmiştir.
+
+Kol 2 — Risk Tahmini (Prognostik): Şu an kanser içermeyen hastalarda gelecekteki 1–5
+yıllık riski öngörmektir. Alanın referans modeli Mirai'dir. Dış doğrulamada C-indeksi tipik
+olarak 0,63–0,81 aralığındadır. Yeni eğilim açıklanabilir (AsymMirai) ve longitudinal/temporal
+modellerdir (LoMaR, TRINet, VMRA-MaR). Görüntü tabanlı yapay zekanın gerçekçi ayrım gücü
+medyan AUC yaklaşık 0,71–0,72'dir; geleneksel klinik/yoğunluk modelleri ise yaklaşık 0,61
+civarındadır.
+
+     Her iki kolun ortak darboğazı: dış doğrulama. Lowry ve ark. (JNCI 2026) 41 çalışmalık risk-
+     tahmini derlemesinde çalışmaların yalnızca 14'ü (yüzde 33) harici popülasyonda doğrulanmıştır ve
+     tümü retrospektiftir. Performans genellikle daha çeşitli ve gerçekçi kohortlarda düşmektedir.
+
+2. Giriş: İki Problem, İki Kol
+
+"Predict" kelimesi literatürde iki farklı anlamı gizler. Birincisi tanısal tespittir: hâlihazırda var
+olan bir lezyonu bulmak ve sınıflandırmak. İkincisi prognostik öngörüdür: henüz hiçbir bulgu
+yokken gelecekteki kanser olasılığını hesaplamak. Bu rapor, iki kolu bilinçli olarak ayırır çünkü
+değerlendirme metrikleri, gereken veri türü ve klinik kullanım senaryoları temelden farklıdır.
+
+Kol 1 için tipik metrikler AUC, duyarlılık, özgüllük (sınıflandırma) ile mAP, IoU, FROC (tespit)
+iken; Kol 2 için 1–5 yıllık AUC ve C-indeksi kullanılır ve uzun takipli tarama kohortları
+zorunludur. Mamosis'in odağı mamografi olduğundan, her iki kol da doğrudan ilgili çalışma
+alanına girer.
+
+3. KOL 1 Tespit ve Sınıflandırma (CAD)
+
+3.1 Alanın Genel Görünümü ve Mimari Evrimi
+
+Amin ve ark. (BMC Cancer 2025) PRISMA derlemesi, 1.051 kayıttan 287 makaleyi dahil ederek
+alanı haritalamıştır. Çalışmaların çoğu lezyon sınıflandırmasına odaklanmış; tespit,
+segmentasyon ve meme yoğunluğu değerlendirmesi görece daha az çalışılmıştır. Yıllık üretim
+2018'de 15 makaleden 2023'te 86'ya, yaklaşık altı kat artmıştır.
+Mimari evrim şu hattı izler: CNN (ResNet, VGG, DenseNet, EfficientNet) → dikkat
+mekanizmaları → vizyon transformerları (ViT, Swin) → hibrit CNN–self-attention → vizyon-dil
+
+Mamografi ile Meme Kanseri Tahmini — Literatür  3 /
+
+Değerlendirmesi                                 11
+temel modelleri. Derlemenin 2024–Haziran 2025 ek taramasında dört yükselen eğilim
+belirlenmiştir: transformer mimarileri, çok görünümlü analiz, çok modlu adaptasyonlar ve yeni
+veri setleri.
+
+3.2 Lezyon Tespiti
+
+Tespit tarafında YOLO ailesi baskındır. Bir çalışmada YOLOv8, mikrokalsifikasyon tespitinde
+mAP50 0,921 (mAP50-95 0,709, F1 0,82) bildirmiştir. YOLOv9, OPTIMAM ön-eğitimi ve özel
+veri ile mAP yüzde 73,3 (±16,7) ve F1 yüzde 76,0 elde etmiştir. Faster R-CNN ise INbreast
+üzerinde görüntü başına 0,3 yanlış pozitifte yüzde 92 duyarlılık sağlamıştır.
+
+3.3 Sınıflandırma ve Temel Modeller
+
+Çok görünümlü transformerlar öne çıkmaktadır. MV-Swin-T, kaydırmalı-pencere dinamik dikkat
+bloğu ile CC ve MLO görünümlerini birlikte işler ve CBIS-DDSM ile VinDr-Mammo üzerinde
+değerlendirilmiştir. Vizyon-dil temel modeli Mammo-CLIP (MICCAI 2024, en iyi yüzde 11
+bildiri) mamogram-rapor çiftleriyle ön-eğitilmiş; Mammo-FActOR modülü ile özellik atfı
+sağlayarak yorumlanabilirlik ve veri verimliliği sunmuştur.
+
+3.4 Meme Yoğunluğu Değerlendirmesi
+
+Dört sınıflı BI-RADS yoğunluk sınıflandırmasında derin öğrenme modelleri yaklaşık yüzde 67–
+90 doğruluk aralığındadır. Khara ve ark. (Communications Medicine 2024), 69.697 çalışmalık
+çeşitli bir veri setinde FFDM üzerinde yüzde 80,5, görülmemiş sentetik 2D (2DS) verisinde
+yüzde 79,4 doğruluk bildirmiştir. Dış doğrulamanın kırılganlığına örnek olarak, bir yoğunluk
+modeli iki sınıflı (yoğun / yoğun değil) ayrımda iyi çalışırken dört sınıflı ayrımda yüzde 56,7
+doğruluk ve kappa 0,325'e düşmüştür.
+
+Mamografi ile Meme Kanseri Tahmini — Literatür  4 /
+
+Değerlendirmesi                                 11
+3.5 Sentez Matrisi — Kol 1
+
+Çalışma              Model / Mimari             Veri Seti             Metrik & Performans            Dış
+                                                                                                     Doğrulama
+Amin ve ark. 2025    PRISMA sistematik          287 makale            Trend ve görev analizi         Yok
+(BMC Cancer)         derleme                    (1.051'den)                                          (derleme)
+                     Çok görünümlü Swin         CBIS-DDSM, VinDr-     Karşılaştırmalı sınıflandırma  Kısmi (2
+Sarker ve ark. 2024  Transformer                Mammo                                                public set)
+(MV-Swin-T)          Vizyon-dil temel modeli    Özel + VinDr-Mammo    Sınıflandırma/lokalizasyon;    Evet (2
+                     + Mammo-FActOR                                   veri-verimli                   public)
+Ghosh ve ark. 2024   YOLOv8                     10.323 görüntü        mAP50 0,921 · F1 0,82 ·        Hayır
+(Mammo-CLIP)                                    (7.615 kadın)         recall 0,796
+                     YOLOv9 transfer            OMI-DB + özel         mAP %73,3 · F1 %76,0           Kısmi
+YOLOv8 çalışması     öğrenme
+2024                 RSNA yarışması, 1.537      RSNA 2023 gizli test  En iyi pF1 0,555 · duyarlılık  Evet (gizli
+                     algoritma                                        %48,6 · özgüllük %99,5         test)
+YOLOv9 + OPTIMAM     Fine-tuned Swin / ViT      DDSM                                                 Hayır
+2025                                                                  %99+ doğruluk
+                     ResNet yoğunluk            69.697 çalışma /      (şişirilmiş)                   Evet
+Chen ve ark. 2025                               23.057 kadın                                         (FFDM→2DS,
+(Radiology)                                                           4-sınıf BI-RADS %80,5          ırk alt-
+                                                                      (FFDM) · %79,4 (2DS)           grupları)
+Swin fine-tuning
+2024
+
+Khara ve ark. 2024
+(Comm. Med.)
+
+4. KOL 2 Risk Tahmini (Prognostik)
+
+4.1 Referans Model: Mirai
+
+Mirai (Yala ve ark., Science Translational Medicine 2021) alanın temel modelidir. Dört
+modülden oluşur: görüntü kodlayıcı (ResNet-18), görüntü toplayıcı (transformer), risk faktörü
+öngörücü ve additif-hazard katmanı. CC ve MLO görünümlerini birlikte kullanır. Test setlerinde
+C-indeksi değerleri: MGH 0,76 (yüzde 95 GA 0,74–0,80), Karolinska 0,81 (0,79–0,82), CGMH
+0,79 (0,79–0,83). Çok kurumlu doğrulaması 7 hastane ve 5 ülkede (ABD, İsveç, Tayvan, İsrail,
+Brezilya) yapılmış ve Tyrer-Cuzick modelini geçmiştir.
+
+4.2 Açıklanabilirlik: AsymMirai
+
+AsymMirai (Donnelly ve ark., Radiology 2024), Mirai'nin ön-uç CNN'ini korur ve geri kalanı
+yorumlanabilir bir "yerel iki-taraflı benzemezlik" modülü ile değiştirir. EMBED üzerinde
+210.067 mamogram ve 81.824 hastada 1/3/5 yıl AUC değerleri 0,79 / 0,68 / 0,66'dır (Mirai:
+0,84 / 0,72 / 0,71). Konum tutarlılığı yüksek alt grupta üstün öngörü gücü gösterir ve klinik
+olarak yorumlanabilir bir sinyal (iki meme arasındaki asimetri) sunar.
+
+Mamografi ile Meme Kanseri Tahmini — Literatür  5 /
+
+Değerlendirmesi                                 11
+4.3 Longitudinal / Temporal Modeller
+
+Mirai'nin bilinen sınırı tek zaman noktalı mamogram kullanması ve meme dokusundaki
+zamansal değişimi yakalayamamasıdır. Bu boşluğu dolduran yeni yönelim longitudinal
+modellerdir.
+
+  • LRP-NET (Dadsetan ve ark., Pattern Recognition 2022): Dört ardışık muayenede iki taraflı
+     doku değişimini yakalar. Ancak 200 hastalık dengeli, küçük bir case-control kohortunda
+     eğitilmiş ve VGG16 gövdesi dondurulmuştur.
+
+  • LoMaR (Karaman ve ark., MICCAI 2024): Mirai'yi genişleterek keyfi sayıda longitudinal
+     mamogramı transformer ile işler. Büyük veri setinde 5. yılda Mirai'ye yaklaşık yüzde 10
+     ROCAUC üstünlük gösterir (tarama-tespitli kanserler hariç tutulduğunda).
+
+  • TRINet (Yeoh ve ark., Medical Image Analysis 2025): Zaman-azalımlı dikkat, radyomik ve
+     AMIL birleşimi. EMBED test setinde 1–5 yıl AUC değerleri 0,851 / 0,811 / 0,796 / 0,793 /
+     0,789'dur; CSAW ile de değerlendirilmiştir.
+
+  • VMRA-MaR (2025): Vision-Mamba RNN ve iki taraflı asimetri birleşimi. CSAW-CC'de uzun
+     ufuklarda 4 yıl AUC 0,84, 5 yıl 0,82 bildirmiştir.
+
+4.4 Dış Doğrulama Sınırları
+
+Dış doğrulama bu kolun en kritik zayıflığıdır. Mirai, Meksikalı kadınlarda (Avendano ve ark.,
+Insights into Imaging 2024; 3.110 hasta, 76 kanser) yalnızca C-indeksi 0,63 (yüzde 95 GA 0,6–
+0,7) elde etmiştir. Bağımsız bir ABD tarama kohortunda Mirai'nin performansı, geliştiricinin
+kendi setindeki 0,71–0,84 aralığından 0,67–0,69'a düşmüştür. Bu düşüşler, tek bir merkezde
+parlayan bir modelin farklı popülasyonlarda nasıl gerileyebileceğini gösterir.
+
+4.5 Sentez Matrisi — Kol 2
+
+Çalışma              Model / Mimari             Veri Seti        Metrik & Performans               Dış
+                                                                                                   Doğrulama
+Yala ve ark. 2021    ResNet-18 +                MGH (eğitim)     C-indeksi 0,76 / 0,81 / 0,79
+(Mirai)              transformer toplayıcı +                     (MGH / Karolinska / CGMH)         Evet (7
+                     additif hazard             EMBED (210.067                                     hastane, 5
+Donnelly ve ark.                                mamogram)        1/3/5 yıl AUC 0,79 / 0,68 / 0,66  ülke)
+2024 (AsymMirai)     Yerel iki-taraflı          200 hasta case-
+Dadsetan ve ark.     benzemezlik                control (3.200   Tek muayene modeline üstün        Evet
+2022 (LRP-NET)                                  görüntü)                                           (EMBED)
+                     CNN + GRU (VGG16           Büyük ölçekli    5. yılda Mirai'ye ~%10
+Karaman ve ark.      dondurulmuş)                                ROCAUC üstünlük                   Hayır
+2024 (LoMaR)                                    EMBED, CSAW      1–5 yıl AUC 0,851 → 0,789         (küçük,
+Yeoh ve ark. 2025    Transformer,                                                                  dengeli)
+(TRINet)             longitudinal               3.110 hasta      C-indeksi 0,63 (0,6–0,7)
+Avendano ve ark.                                                                                   Kısmi
+2024 (Meksika)       Zaman-azalımlı dikkat
+Gastounioti ve ark.  + radyomik + AMIL                                                             Kısmi (2
+2022                                                                                               set)
+                     Mirai (dış doğrulama)
+Lowry ve ark. 2026                                                                                 Evet
+(JNCI)
+                     ProFound AI Risk 1.0       ABD kohort (176  AUC 0,68 (beyaz 0,67 · siyah      Evet
+                     (iCAD)                     kanser / 4.963   0,70)
+                                                kontrol)
+                     PRISMA sistematik                           Medyan AUC 0,71; en uzun          Yok
+                     derleme                    41 çalışma       ufukta 0,61–0,84                  (derleme)
+
+Mamografi ile Meme Kanseri Tahmini — Literatür  6 /
+
+Değerlendirmesi                                 11
+5. Ana Public Veri Setleri
+
+Kol 1 (Tespit / Sınıflandırma) için birincil
+
+  • CBIS-DDSM: 3.103 taranmış film mamogram; kitle ve kalsifikasyon, ROI segmentasyon ve
+     patoloji-onaylı etiketler. En sık kullanılan setlerden biri.
+
+  • INbreast: 410 FFDM görüntüsü, 115 hasta (87 doğrulanmış malignite); BI-RADS ve kontur
+     anotasyonu. Küçük ama yüksek kaliteli benchmark.
+
+  • VinDr-Mammo: 5.000 muayene (20.000 görüntü), Vietnam; çift okuma ve üçüncü radyolog
+     arbitrajı; meme seviyesi BI-RADS, yoğunluk ve lezyon bounding box. İyi/kötü huylu
+     dağılımında dengesizlik (uzun kuyruk).
+
+  • RSNA 2022/2023: Yaklaşık 20.000 çalışma, 2 site (ABD ve Avustralya), 4 görünüm 2D; BI-
+     RADS, yoğunluk ve patoloji ground truth. Ciddi sınıf dengesizliği (~yüzde 2 pozitif). Kaggle
+     probabilistik F1 metriği.
+
+  • EMBED: 3,4 milyon görüntü, 110.000+ hasta (beyaz/siyah dengeli temsil), 2D, sentetik 2D
+     ve DBT; 60.000 anotasyonlu lezyon. Risk tahmini dış doğrulaması için de kullanılır.
+
+  • OPTIMAM (OMI-DB): 2,5 milyondan fazla görüntü, 173.319 kadın, İngiltere NHS; 7.643
+     tarama-tespitli ve 952 interval kanser; ROI, klinik/patoloji verisi ve longitudinal takip.
+     Erişim başvuru gerektirir.
+
+Kol 2 (Risk Tahmini) için birincil
+
+EMBED (Mirai, AsymMirai, TRINet dış doğrulaması), CSAW-CC (Karolinska, İsveç —
+longitudinal), MGH (Mirai eğitimi, özel) ve OPTIMAM (interval kanserler risk sinyali için). Bu
+kol büyük ve uzun takipli tarama kohortları gerektirir, çünkü "gelecekte kanser çıktı mı"
+etiketine ihtiyaç vardır.
+
+6. Ana Eğilimler (2024–2026)
+
+ 1. Transformer benimseme: ViT, Swin ve DeiT ile tek görünümlü sınıflandırmadan çok
+     görünümlü (CC+MLO) füzyona; hibrit CNN-transformer mimarileri.
+
+ 2. Temel modeller: Mammo-CLIP (vizyon-dil) ve MammoDINO (DINOv2 tabanlı self-
+     supervised) gibi modeller veri verimliliğini artırıyor.
+
+ 3. Longitudinal modelleme: Risk tahmininde tek zaman noktasından temporal dizilere geçiş
+     (LRP-NET → LoMaR → TRINet → VMRA-MaR). Prior mamogramlar özellikle uzun ufuklu (4–
+     5 yıl) tahmine katkı sağlıyor.
+
+ 4. Açıklanabilirlik: AsymMirai (iki taraflı benzemezlik), Mammo-FActOR (cümle seviyesi
+     öznitelik atfı) ve sparse-autoencoder tabanlı fenotip keşfi.
+
+ 5. Çok modlu adaptasyon: Görüntü, radyoloji raporu metni ve klinik risk faktörleri birlikte.
+     İlginç bulgu: görüntü tabanlı modellere klinik veri eklemek ayrım performansını genelde
+     artırmıyor, çünkü mamogram zaten zengin prognostik sinyal taşıyor.
+
+7. Performans İddialarının Eleştirel Değerlendirmesi
+
+Küçük, dengesiz ve ROI-merkezli veri setlerinde bildirilen yüzde 99–100 doğruluk değerleri
+klinik olarak anlamsızdır. Bu değerler tipik olarak şu tuzakları yansıtır: veri sızıntısı (aynı
+
+Mamografi ile Meme Kanseri Tahmini — Literatür  7 /
+
+Değerlendirmesi                                 11
+hastanın görüntülerinin train ve test setine karışması), lezyon-merkezli kırpma (tam mamogram
+tarama zorluğunu atlaması), sınıf dengesizliğinin doğruluk metriğini şişirmesi ve dış doğrulama
+eksikliği.
+
+     Gerçekçi kıyaslamalar:
+     Kol 1: 2023 RSNA yarışmasında 1.537 algoritma arasında en iyisi yalnızca 0,555 probabilistik F1
+     elde etmiştir. En iyi 10 algoritma, Avrupa ve Avustralya'daki ortalama tarama radyoloğuna yakın
+     performans göstermiştir. Bu, gerçek tarama popülasyonundaki düşük prevalansın (~yüzde 2) sorunu
+     ne kadar zorlaştırdığını gösterir.
+
+     Kol 2: Schopf ve ark. (JACR 2024, 16 çalışma) görüntü tabanlı modellerde medyan AUC 0,72 (aralık
+     0,62–0,90), yoğunluk/klinik risk araçlarında 0,61 (aralık 0,54–0,69) bildirmiştir. Lowry ve ark. (JNCI
+     2026, 41 çalışma) en uzun ufukta AUC 0,61–0,84, medyan 0,71 bulmuştur. Yani gerçekçi tavan
+     yaklaşık 0,85, taban yaklaşık 0,65 civarındadır.
+
+Pratik kural: ROI-kırpma sınıflandırması (lezyon zaten bulunmuş) ile tam mamogram tarama
+sınıflandırmasını (lezyonu bulmak gerekir) asla karıştırma. Bunlar farklı zorluk seviyeleridir ve
+doğrudan karşılaştırılamaz.
+
+8. Öneriler ve Karar Eşikleri
+
+ 1. İlk aşama (temel oturtma, 1–2 hafta): İki sistematik derlemeyi (Amin 2025 için Kol 1,
+     Lowry 2026 için Kol 2) okuyarak alanı haritalandır. Mirai deposunu (GitHub yala/Mirai)
+     klonlayıp referans risk modelini bir örnek mamogramda çalıştır. Mirai'yi zihinsel baseline
+     olarak sabitle.
+
+ 2. İkinci aşama (kıyaslama kurulumu, 2–4 hafta): VinDr-Mammo (public, hemen
+     indirilebilir) ve RSNA 2023 (Kaggle, public) üzerinde bir EfficientNet veya ConvNeXt CNN
+     baseline kur. Papers with Code'da CBIS-DDSM ve VinDr-Mammo SOTA'sını takip et. Metrik
+     seti yalnızca doğruluk değil: AUC, probabilistik F1, kalibrasyon ve duyarlılık@sabit-
+     özgüllük.
+
+ 3. Üçüncü aşama (ileri yöntemler): Kol 1'de çok görünümlü transformer (MV-Swin-T) ve
+     temel model fine-tuning (Mammo-CLIP); Kol 2'de longitudinal modeller (LoMaR, TRINet)
+     dene. EMBED erişimi (AWS Open Data) risk tahmini deneyleri için kritik.
+
+     Karar eşikleri (bunlar değerlendirmeni değiştirir):
+        • Bir tespit/sınıflandırma modelini "umut verici" saymak için: tek veri setinde yüzde 99 doğruluk
+           değil, en az bir harici kohortta gerçekçi metrik ara (ör. tarama ortamı probabilistik F1 ≳ 0,5 veya
+           anlamlı lezyon mAP).
+        • Bir risk modelini "klinik potansiyeli var" saymak için: en az bir harici popülasyonda AUC ≥ 0,75
+           ve kalibrasyon değerlendirmesi olmalı. Lowry derlemesinde çalışmaların yalnızca yüzde 15'i
+           kalibrasyon değerlendirmiş. Bu boşluğu bir farklılaşma fırsatı olarak gör.
+        • Dış doğrulama yoksa veya veri seti yaklaşık 1.000 hastadan azsa, iddiayı "ön sonuç / şişirilmiş
+           olabilir" olarak işaretle.
+
+Mamografi ile Meme Kanseri Tahmini — Literatür  8 /
+
+Değerlendirmesi                                 11
+9. Sınırlamalar ve Uyarılar
+
+  • Bazı performans değerleri (özellikle yüzde 99–100 doğruluk) hakemli olmayan, küçük veya
+     ROI-merkezli kaynaklardan gelmektedir ve klinik geçerlilik göstermez.
+
+  • Amin ve ark. (BMC Cancer 2025) derlemesinde görev bazlı toplam sayılar ağırlıklı olarak
+     şekiller ve ek tablolarda sunulmuştur; ana metinde konsolide bir sayısal doğruluk aralığı
+     bulunamamıştır.
+
+  • Gastounioti ve ark. (2022) çalışması Mirai'yi değil, iCAD'ın ProFound AI Risk 1.0 modelini
+     dış doğrulamaktadır (Avrupa'da geliştirilmiş, ABD kohortunda AUC 0,68). Mirai ile
+     karıştırılmamalıdır.
+
+  • TRINet, LoMaR ve VMRA-MaR gibi bazı longitudinal modeller henüz bağımsız (geliştirici
+     dışı) dış doğrulamadan geçmemiştir; bildirilen AUC değerleri geliştiricinin kendi test
+     bölmelerinden gelir ve iyimser olabilir.
+
+  • Lowry ve ark. (JNCI 2026) 41 çalışmanın tümü retrospektiftir. Alanın hiçbir modeli için
+     henüz olgun prospektif klinik fayda kanıtı yoktur. Dış doğrulamadaki düşüşler (Mirai
+     Meksika'da C-indeksi 0,63) gerçek genelleme sınırlarını gösterir.
+
+  • Veri çeşitliliği kritik bir kör noktadır. Araştırma ağırlıklı olarak Kafkas (>yüzde 80) veri
+     setlerinde yoğunlaşmıştır; risk çalışmalarının yarısından azı ırk/etnik köken bildirmiştir.
+     Belirli bir popülasyona hizmet eden bir şirket için hedef popülasyonda yerel doğrulama
+     vazgeçilmezdir.
+
+  • Bu rapor, taranan tüm literatürü değil, rapora fiilen giren doğrulanmış kaynakları temsil
+     eder. Sistematik derlemelerin kendisi birkaç yüz makalelik daha geniş bir havuzu kapsar.
+
+10. Arama Platformları ve Sorgu Stratejileri
+
+PubMed / NCBI (MeSH tabanlı)
+
+Kol 1:
+
+   ("Mammography"[Mesh]) AND ("Deep Learning"[Mesh] OR "Neural Networks, Computer"[Mesh])
+   AND ("Early Detection of Cancer"[Mesh] OR "diagnosis"[Subheading])
+
+Kol 2:
+
+   ("Mammography"[Mesh]) AND ("Risk Assessment"[Mesh]) AND ("Deep Learning"[Mesh])
+   AND ("Breast Neoplasms"[Mesh])
+
+Derleme filtresi: AND (systematic[sb] OR "systematic review"[Publication Type])
+
+Scopus & Web of Science (PRISMA derlemeleri için)
+
+   TITLE-ABS-KEY(mammography AND ("deep learning" OR "convolutional neural network"
+   OR transformer) AND (classification OR detection OR segmentation)
+   AND ("systematic review" OR PRISMA))
+
+   TITLE-ABS-KEY(mammography AND "deep learning" AND ("risk prediction"
+   OR "future breast cancer") AND ("external validation" OR PRISMA))
+
+Mamografi ile Meme Kanseri Tahmini — Literatür  9 /
+
+Değerlendirmesi                                 11
+arXiv (cs.CV, eess.IV kategorileri)
+Örnek sorgular: mammography transformer classification , mammogram multi-view Swin ,
+longitudinal mammogram risk prediction , mammography foundation model self-supervised . Kategori
+filtresi: cat:eess.IV OR cat:cs.CV .
+
+Google Scholar (atıf kartopu)
+Mirai (Yala 2021) ve AsymMirai (Donnelly 2024) sayfalarında "Cited by" listelerini tara. VinDr-
+Mammo ve EMBED veri seti makalelerinin atıflarını izleyerek bu setleri kullanan tüm yeni
+modelleri bul.
+
+Papers with Code (benchmark / SOTA)
+"CBIS-DDSM", "VinDr-Mammo", "INbreast" ve "RSNA Screening Mammography" benchmark
+sayfalarında güncel SOTA sıralamasını ve kod bağlantılı makaleleri izle.
+
+Semantic Scholar (atıf grafiği)
+Yala 2021 (Mirai) düğümünden başlayarak "citing" ve "references" grafiğini haritalandır.
+Longitudinal modeller kümesini (LRP-NET → LoMaR → TRINet → VMRA-MaR) ve
+açıklanabilirlik dalını (AsymMirai) izole et.
+
+11. Kaynakça (Tam Bağlantılar)
+
+Toplam 38 doğrulanmış kaynak. Kırılım: 21 hakemli/birincil makale veya sistematik derleme, 17 veri seti sayfası,
+model deposu, önbaskı, haber ve konferans bildiri sayfası.
+
+Kol 1 — Tespit ve Sınıflandırma
+
+Amin ve ark. 2025, BMC Cancer, PRISMA derleme — https://link.springer.com/article/10.1186/s12885-025-14876-5
+Aynı derleme (PMC) — https://pmc.ncbi.nlm.nih.gov/articles/PMC12542462/
+Mamogram sınıflandırma yöntemleri sistematik derlemesi — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12651907/
+RSNA 2023 yarışması veri seti, Radiology: AI — https://pubs.rsna.org/doi/10.1148/ryai.250375
+YOLOv8 mikrokalsifikasyon tespiti — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11675152/
+YOLOv9 + OPTIMAM transfer öğrenme — https://www.sciencedirect.com/science/article/abs/pii/S0010482525009321
+Faster R-CNN kitle tespiti — https://arxiv.org/pdf/2104.12218
+Mammo-CLIP, MICCAI 2024 — https://papers.miccai.org/miccai-2024/488-Paper0926.html
+Mammo-Clustering, çok görünümlü füzyon — https://arxiv.org/pdf/2507.18642
+Khara ve ark. 2024, yoğunluk, Communications Medicine — https://www.nature.com/articles/s43856-024-00446-6
+Yoğunluk modelleri kafa-kafaya karşılaştırma — https://pmc.ncbi.nlm.nih.gov/articles/PMC13102294/
+Yoğunluk modeli dış doğrulama, ECR posteri — https://epos.myesr.org/poster/esr/ecr2023/C-16014
+MammoDINO, GE HealthCare — https://research.gehealthcare.com/patient-care-pathways/unveiling-mammodino-an-
+
+     anatomically-aware-vision-foundation-model-for-mammography/
+RSNA yarışması analizi (haber) — https://www.contemporaryobgyn.net/view/top-ai-models-show-high-accuracy-in-breast-
+
+     cancer-screening
+RSNA yarışması resmi sayfa — https://www.rsna.org/rsnai/ai-image-challenge/screening-mammography-breast-cancer-
+
+     detection-ai-challenge
+Yarışma veri seti wiki — https://github.com/RSNA/AI-Challenge-Data/wiki/RSNA-Screening-Mammography-Breast-Cancer-
+
+     Detection
+
+Kol 2 — Risk Tahmini
+
+Lowry ve ark. 2026, JNCI, PRISMA derleme — https://academic.oup.com/jnci/article/118/3/392/8416736
+
+Mamografi ile Meme Kanseri Tahmini — Literatür  10 /
+Değerlendirmesi                                 11
+Aynı makale (DOI) — https://doi.org/10.1093/jnci/djag002
+Schopf ve ark. 2024, JACR derleme — https://www.jacr.org/article/S1546-1440(23)00850-5/abstract
+Yala ve ark. 2021, Mirai, Science Translational Medicine — https://www.science.org/doi/10.1126/scitranslmed.aba4373
+Mirai makalesi (PDF) — https://www.cse.unr.edu/~bebis/CS791/Fall2025/ProjectIdeas/RiskPrediction_DL/2(a)_2021%20-
+
+     %20Toward%20robust%20mammography-based%20models%20for%20breast%20cancer%20risk.pdf
+Mirai, Tyrer-Cuzick karşılaştırması, JCO — https://ascopubs.org/doi/full/10.1200/JCO.21.02908
+Mirai çok kurumlu doğrulama, JCO — https://ascopubs.org/doi/10.1200/JCO.21.01337
+AsymMirai, Radiology 2024 — https://pubs.rsna.org/doi/full/10.1148/radiol.232780
+AsymMirai (DOI) — https://dx.doi.org/10.1148/radiol.232780
+Mirai Meksika dış doğrulama — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11466924/
+LoMaR, longitudinal risk, MICCAI 2024 (arXiv) — https://arxiv.org/abs/2404.19083
+LoMaR MICCAI bildiri sayfası — https://papers.miccai.org/miccai-2024/474-Paper3369.html
+TRINet, zaman-azalımlı radyomik — https://arxiv.org/abs/2412.03081
+VMRA-MaR, Vision-Mamba asimetri — https://arxiv.org/pdf/2506.17412
+LongiMam, longitudinal — https://arxiv.org/html/2509.21383
+ProFound AI Risk dış doğrulama, Cancers 2022 — https://doi.org/10.3390/cancers14194803
+Aynı ProFound çalışması (PMC) — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9564051/
+AsymMirai haber, RSNA — https://www.rsna.org/news/2024/march/deep-learning-for-predicting-breast-cancer
+Longitudinal temporal modeller — https://www.researchgate.net/publication/
+
+     401436193_Temporal_Deep_Learning_Models_for_Longitudinal_Cancer_Risk_Prediction_in_Population_Screening
+
+Veri Setleri (Her İki Kol İçin Ortak)
+
+CBIS-DDSM — https://complexity.cecs.ucf.edu/cbis-ddsm/
+VinDr-Mammo (PhysioNet) — https://physionet.org/content/vindr-mammo/1.0.0/
+VinDr-Mammo makalesi (Nature Sci Data) — https://www.nature.com/articles/s41597-023-02100-7
+EMBED (AWS Open Data) — https://registry.opendata.aws/emory-breast-imaging-dataset-embed/
+OPTIMAM veri tabanı (arXiv) — https://arxiv.org/abs/2004.04742
+
+     Teyit gereken kaynak: LRP-NET (Dadsetan ve ark. 2022, Pattern Recognition) raporda
+     anılmaktadır ancak doğrudan bağlantısı yukarıdaki doğrulanmış listede yer almamaktadır. Bu
+     kaynağı Semantic Scholar veya dergi üzerinden ayrıca teyit etmen gerekir.
+
+Mamografi ile Meme Kanseri Tahmini — Literatür  11 /
+Değerlendirmesi                                 11
+
