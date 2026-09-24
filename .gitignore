@@ -81,3 +81,12 @@ iskemik_inme/rapor/girdi/
 
 # staj: uretim ara ciktilari (HTML) surumlenmiyor, DOCX/PDF uretilen/ altinda
 staj_defteri/uretim/*.html
+
+# Kisisel belgeler (staj dosyasi, formlar, vesikalik) - depoda tutulmaz
+staj_defteri/
+
+# Model agirliklari - depoyu sisiriyor, yerelde tutulur
+*.pth
+*.pt
+*.onnx
+*.engine
